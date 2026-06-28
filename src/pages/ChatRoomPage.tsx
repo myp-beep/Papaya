@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Avatar from '../components/Avatar'
 import { useChat } from '../data/chatStore'
+import { useProfile } from '../data/profileStore'
 import { clockTime } from '../utils/time'
 
 const EMOJIS = ['😀', '😂', '😍', '😎', '🥳', '😭', '🔥', '👍', '❤️', '🎮', '🍈', '🎉', '🙌', '💯', '🤔', '😴']
@@ -9,7 +10,8 @@ const EMOJIS = ['😀', '😂', '😍', '😎', '🥳', '😭', '🔥', '👍', 
 export default function ChatRoomPage() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
-  const { getThread, sendMessage, markRead, notifyTyping, setActiveThread, typing } = useChat()
+  const { getThread, sendMessage, markRead, notifyTyping, setActiveThread, typing, realtime, sendEvent } = useChat()
+  const { profile } = useProfile()
   const [draft, setDraft] = useState('')
   const [showEmoji, setShowEmoji] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -65,6 +67,23 @@ export default function ChatRoomPage() {
     notifyTyping(id, false)
   }
 
+  const canPlayOnline = realtime && peer.online && peer.id !== 'papaya-bot'
+
+  const onPlay = () => {
+    if (!canPlayOnline) {
+      navigate('/games/tic')
+      return
+    }
+    const gameId = 'g-' + Math.random().toString(36).slice(2, 9)
+    sendEvent('game:invite', {
+      to: peer.id,
+      gameId,
+      game: 'tic',
+      hostProfile: { name: profile.name, avatar: profile.avatar, color: profile.color },
+    })
+    navigate(`/play/tic/${gameId}`, { state: { gameId, peer, role: 'host' } })
+  }
+
   return (
     <div className="flex h-full flex-col bg-ink-900">
       <header className="flex items-center gap-3 border-b border-ink-700 bg-ink-800/90 px-3 py-2.5 backdrop-blur">
@@ -83,9 +102,9 @@ export default function ChatRoomPage() {
           </div>
         </div>
         <button
-          onClick={() => navigate('/games/tic')}
+          onClick={onPlay}
           className="flex h-9 w-9 items-center justify-center rounded-full text-lg text-white/60 transition hover:bg-ink-700"
-          title="Birlikte oyna"
+          title={canPlayOnline ? 'Canlı XOX oyna' : 'Oyna'}
         >
           🎮
         </button>

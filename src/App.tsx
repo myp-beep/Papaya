@@ -9,8 +9,10 @@ import GamesPage from './pages/GamesPage'
 import MemoryGamePage from './pages/MemoryGamePage'
 import TicTacToePage from './pages/TicTacToePage'
 import ReactionGamePage from './pages/ReactionGamePage'
+import OnlineTicPage from './pages/OnlineTicPage'
 import DiscoverPage from './pages/DiscoverPage'
 import ProfilePage from './pages/ProfilePage'
+import GameInviteListener from './components/GameInviteListener'
 
 export default function App() {
   const { onboarded } = useProfile()
@@ -22,6 +24,7 @@ export default function App() {
         {!onboarded ? (
           <WelcomePage />
         ) : (
+        <>
         <Routes>
           {/* Tab bar'lı ana ekranlar */}
           <Route element={<AppShell />}>
@@ -36,7 +39,12 @@ export default function App() {
           </Route>
           {/* Tam ekran sohbet odası (tab bar gizli) */}
           <Route path="chat/:id" element={<ChatRoomPage />} />
+          {/* Canlı çok oyunculu XOX */}
+          <Route path="play/tic/:gameId" element={<OnlineTicPage />} />
         </Routes>
+        {/* Uygulama genelinde gelen oyun davetleri */}
+        <GameInviteListener />
+        </>
         )}
       </div>
     </div>

@@ -94,6 +94,10 @@ interface ChatContextValue {
   startChat: (peer: Peer) => string
   sendMessage: (threadId: string, text: string) => void
   notifyTyping: (threadId: string, isTyping: boolean) => void
+  /** Genel realtime olayı yayınla (oyun vb.). */
+  sendEvent: (kind: string, payload: Record<string, unknown>) => void
+  /** Genel realtime olayına abone ol; aboneliği iptal eden fonksiyon döndürür. */
+  onEvent: (kind: string, handler: (p: Record<string, unknown>) => void) => () => void
   markRead: (threadId: string) => void
   setActiveThread: (id: string | null) => void
   typing: Record<string, boolean>
@@ -120,6 +124,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const profileRef = useRef(profile)
   profileRef.current = profile
   const timers = useRef<number[]>([])
+  // Genel realtime olay dinleyicileri (oyunlar vb. için)
+  const listenersRef = useRef<Map<string, Set<(p: Record<string, unknown>) => void>>>(new Map())
 
   // Kalıcılık (gerçek modda yerel geçmiş)
   useEffect(() => {
@@ -188,6 +194,15 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         )
         timers.current.push(t)
       }
+    })
+
+    // Genel uygulama olayları (oyun davet/hamle vb.)
+    ch.on('broadcast', { event: 'app' }, ({ payload }) => {
+      const kind = payload?.kind as string | undefined
+      if (!kind) return
+      // 'to' alanı varsa sadece hedefe
+      if (payload.to && payload.to !== myId) return
+      listenersRef.current.get(kind)?.forEach((fn) => fn(payload))
     })
 
     ch.on('presence', { event: 'sync' }, () => {
@@ -288,6 +303,25 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     [realtime, myId],
   )
 
+  const sendEvent = useCallback(
+    (kind: string, payload: Record<string, unknown>) => {
+      if (!channelRef.current) return
+      void channelRef.current.send({
+        type: 'broadcast',
+        event: 'app',
+        payload: { kind, from: myId, ...payload },
+      })
+    },
+    [myId],
+  )
+
+  const onEvent = useCallback((kind: string, handler: (p: Record<string, unknown>) => void) => {
+    const map = listenersRef.current
+    if (!map.has(kind)) map.set(kind, new Set())
+    map.get(kind)!.add(handler)
+    return () => map.get(kind)?.delete(handler)
+  }, [])
+
   const startChat = useCallback((peer: Peer) => {
     setThreads((prev) => {
       if (prev.some((t) => t.id === peer.id)) return prev
@@ -329,6 +363,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     startChat,
     sendMessage,
     notifyTyping,
+    sendEvent,
+    onEvent,
     markRead,
     setActiveThread,
     typing,
