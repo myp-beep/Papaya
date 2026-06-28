@@ -64,7 +64,7 @@ export default function ProfilePage() {
       </header>
 
       {/* Profil kartı */}
-      <div className="mx-5 mt-2 flex flex-col items-center rounded-3xl border border-ink-700 bg-gradient-to-b from-ink-800 to-ink-900 p-6 shadow-card">
+      <div className="mx-5 mt-2 flex flex-col items-center overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-papaya-500/15 via-ink-800 to-grape-500/15 p-6 shadow-card">
         <Avatar emoji={avatar} color={color} size={84} online />
         {editing ? (
           <div className="mt-4 w-full animate-slide-up">
@@ -112,16 +112,10 @@ export default function ProfilePage() {
             </div>
 
             <div className="mt-5 flex gap-2">
-              <button
-                onClick={() => setEditing(false)}
-                className="flex-1 rounded-xl bg-ink-700 py-2.5 font-semibold text-white/80 transition hover:bg-ink-600"
-              >
+              <button onClick={() => setEditing(false)} className="btn-ghost flex-1 py-2.5">
                 Vazgeç
               </button>
-              <button
-                onClick={save}
-                className="flex-1 rounded-xl bg-papaya-500 py-2.5 font-bold text-white shadow-glow transition hover:bg-papaya-400"
-              >
+              <button onClick={save} className="btn-primary flex-1 py-2.5">
                 Kaydet
               </button>
             </div>
@@ -145,7 +139,7 @@ export default function ProfilePage() {
 
       {/* Ayar satırları */}
       {!editing && (
-        <ul className="mx-5 mt-4 overflow-hidden rounded-2xl border border-ink-700 bg-ink-800">
+        <ul className="glass mx-5 mt-4 overflow-hidden rounded-2xl">
           {ROWS.map((r, i) => (
             <li key={r.label}>
               <button
