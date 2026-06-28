@@ -1,5 +1,6 @@
 import {
   createContext,
+  createElement,
   useCallback,
   useContext,
   useEffect,
@@ -8,53 +9,74 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { createElement } from 'react'
-import type { ChatState, Conversation, Message } from '../types'
-import { SEED_STATE, USERS } from './mockData'
+import type { RealtimeChannel } from '@supabase/supabase-js'
+import type { ChatMessage, ChatThread, Peer } from '../types'
+import { isSupabaseConfigured, supabase } from '../lib/supabase'
+import { getClientId } from '../lib/identity'
+import { useProfile } from './profileStore'
+import { USERS } from './mockData'
 
-const STORAGE_KEY = 'papaya.chat.v1'
-
-function loadState(): ChatState {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return JSON.parse(raw) as ChatState
-  } catch {
-    /* bozuk veri -> seed'e dön */
-  }
-  return structuredClone(SEED_STATE)
-}
-
-function saveState(state: ChatState) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-  } catch {
-    /* kota dolu vs. -> sessiz geç */
-  }
-}
+const THREADS_KEY = 'papaya.threads.v2'
+const GLOBAL_CHANNEL = 'papaya:global'
 
 function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
 
-/** Karşı taraftan gelen sahte cevaplar (mock). */
-const BOT_REPLIES = [
-  'Aynen öyle 😄',
-  'Haha, kesinlikle!',
-  'Birazdan yazarım, kahve molası ☕',
-  'Bunu sevdim 🔥',
-  'Oyuna var mısın? 🎮',
-  'Tamamdır, görüşürüz!',
-  'Vay be, müthiş 👏',
-  'Papaya gerçekten iyi olmuş 🍈',
-]
+function loadThreads(): ChatThread[] {
+  try {
+    const raw = localStorage.getItem(THREADS_KEY)
+    if (raw) return JSON.parse(raw) as ChatThread[]
+  } catch {
+    /* yoksay */
+  }
+  return []
+}
+
+// Mock mod (anahtarsız): demo sohbetleri + bot cevapları
+const MOCK_PEERS: Peer[] = Object.values(USERS).map((u) => ({
+  id: u.id,
+  name: u.name,
+  avatar: u.avatar,
+  color: u.color,
+  online: u.online,
+}))
+
+function seedMockThreads(): ChatThread[] {
+  const now = Date.now()
+  const peer = (id: string) => MOCK_PEERS.find((p) => p.id === id)!
+  return [
+    {
+      id: 'papaya',
+      peer: peer('papaya'),
+      unread: 1,
+      messages: [
+        { id: 'm1', mine: false, text: "Papaya'ya hoş geldin! 🍈 Bana yaz, hemen cevap veririm.", ts: now - 90 * 60000 },
+        { id: 'm2', mine: false, text: 'Gerçek arkadaşlarınla da canlı sohbet edebilirsin 👀', ts: now - 4 * 60000 },
+      ],
+    },
+    {
+      id: 'ela',
+      peer: peer('ela'),
+      unread: 0,
+      messages: [{ id: 'm3', mine: false, text: 'Bu akşam oyun var mı? 🎮', ts: now - 12 * 60000 }],
+    },
+  ]
+}
+
+const BOT_REPLIES = ['Aynen öyle 😄', 'Haha kesinlikle!', 'Bunu sevdim 🔥', 'Oyuna var mısın? 🎮', 'Papaya çok iyi olmuş 🍈']
 
 interface ChatContextValue {
-  conversations: Conversation[]
-  getConversation: (id: string) => Conversation | undefined
-  sendMessage: (conversationId: string, text: string) => void
-  markRead: (conversationId: string) => void
-  /** Kullanıcıyla sohbet başlat (varsa mevcut id'yi döndürür). */
-  startConversation: (userId: string) => string
+  threads: ChatThread[]
+  onlineUsers: Peer[]
+  realtime: boolean
+  myId: string
+  getThread: (id: string) => ChatThread | undefined
+  startChat: (peer: Peer) => string
+  sendMessage: (threadId: string, text: string) => void
+  notifyTyping: (threadId: string, isTyping: boolean) => void
+  markRead: (threadId: string) => void
+  setActiveThread: (id: string | null) => void
   typing: Record<string, boolean>
   totalUnread: number
 }
@@ -62,131 +84,232 @@ interface ChatContextValue {
 const ChatContext = createContext<ChatContextValue | null>(null)
 
 export function ChatProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<ChatState>(loadState)
+  const { profile } = useProfile()
+  const realtime = isSupabaseConfigured
+  const myId = useMemo(() => (realtime ? getClientId() : 'me'), [realtime])
+
+  const [threads, setThreads] = useState<ChatThread[]>(() =>
+    realtime ? loadThreads() : seedMockThreads(),
+  )
+  const [onlineUsers, setOnlineUsers] = useState<Peer[]>(realtime ? [] : MOCK_PEERS)
   const [typing, setTyping] = useState<Record<string, boolean>>({})
+
+  const channelRef = useRef<RealtimeChannel | null>(null)
+  const activeThreadRef = useRef<string | null>(null)
+  const profileRef = useRef(profile)
+  profileRef.current = profile
   const timers = useRef<number[]>([])
 
-  // Her değişiklikte kalıcı hale getir.
+  // Kalıcılık (gerçek modda yerel geçmiş)
   useEffect(() => {
-    saveState(state)
-  }, [state])
+    if (!realtime) return
+    try {
+      localStorage.setItem(THREADS_KEY, JSON.stringify(threads))
+    } catch {
+      /* yoksay */
+    }
+  }, [threads, realtime])
 
-  // Açık kalan zamanlayıcıları temizle.
   useEffect(() => {
     const t = timers.current
     return () => t.forEach((id) => window.clearTimeout(id))
   }, [])
 
-  const appendMessage = useCallback((conversationId: string, msg: Message, bumpUnread: boolean) => {
-    setState((prev) => ({
-      conversations: prev.conversations.map((c) =>
-        c.id === conversationId
-          ? { ...c, messages: [...c.messages, msg], unread: bumpUnread ? c.unread + 1 : c.unread }
-          : c,
-      ),
-    }))
-  }, [])
+  // Bir mesajı ilgili thread'e ekle (yoksa peer ile oluştur)
+  const appendMessage = useCallback(
+    (threadId: string, peer: Peer, msg: ChatMessage, bumpUnread: boolean) => {
+      setThreads((prev) => {
+        const idx = prev.findIndex((t) => t.id === threadId)
+        if (idx === -1) {
+          return [{ id: threadId, peer, messages: [msg], unread: bumpUnread ? 1 : 0 }, ...prev]
+        }
+        const copy = [...prev]
+        const t = copy[idx]
+        copy[idx] = {
+          ...t,
+          peer: { ...t.peer, ...peer },
+          messages: [...t.messages, msg],
+          unread: bumpUnread ? t.unread + 1 : t.unread,
+        }
+        return copy
+      })
+    },
+    [],
+  )
+
+  // --- GERÇEK ZAMANLI (Supabase) ---
+  useEffect(() => {
+    if (!realtime || !supabase) return
+    const sb = supabase
+    const ch = sb.channel(GLOBAL_CHANNEL, {
+      config: { presence: { key: myId }, broadcast: { self: false } },
+    })
+
+    ch.on('broadcast', { event: 'msg' }, ({ payload }) => {
+      if (payload.to !== myId) return
+      const peer: Peer = { id: payload.from, ...payload.fromProfile, online: true }
+      const msg: ChatMessage = { id: payload.id, mine: false, text: payload.text, ts: payload.ts }
+      const isActive = activeThreadRef.current === payload.from
+      appendMessage(payload.from, peer, msg, !isActive)
+      // Bildirim (öndeyüz)
+      if (!isActive && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        new Notification(peer.name, { body: payload.text, icon: './icon-192.png' })
+      }
+    })
+
+    ch.on('broadcast', { event: 'typing' }, ({ payload }) => {
+      if (payload.to !== myId) return
+      setTyping((p) => ({ ...p, [payload.from]: payload.isTyping }))
+      if (payload.isTyping) {
+        const t = window.setTimeout(
+          () => setTyping((p) => ({ ...p, [payload.from]: false })),
+          4000,
+        )
+        timers.current.push(t)
+      }
+    })
+
+    ch.on('presence', { event: 'sync' }, () => {
+      const state = ch.presenceState<{ id: string; name: string; avatar: string; color: string }>()
+      const seen = new Map<string, Peer>()
+      Object.values(state).forEach((arr) => {
+        arr.forEach((m) => {
+          if (m.id && m.id !== myId) {
+            seen.set(m.id, { id: m.id, name: m.name, avatar: m.avatar, color: m.color, online: true })
+          }
+        })
+      })
+      setOnlineUsers([...seen.values()])
+      if (import.meta.env.DEV) console.log('[papaya] presence sync, online=', seen.size)
+    })
+
+    ch.subscribe(async (status) => {
+      if (import.meta.env.DEV) console.log('[papaya] channel status:', status)
+      if (status === 'SUBSCRIBED') {
+        const p = profileRef.current
+        await ch.track({ id: myId, name: p.name, avatar: p.avatar, color: p.color })
+      }
+    })
+
+    channelRef.current = ch
+    return () => {
+      sb.removeChannel(ch)
+      channelRef.current = null
+    }
+  }, [realtime, myId, appendMessage])
+
+  // Profil değişince presence'ı güncelle
+  useEffect(() => {
+    if (!realtime) return
+    const ch = channelRef.current
+    if (ch) void ch.track({ id: myId, name: profile.name, avatar: profile.avatar, color: profile.color })
+  }, [realtime, myId, profile])
 
   const sendMessage = useCallback(
-    (conversationId: string, text: string) => {
+    (threadId: string, text: string) => {
       const trimmed = text.trim()
       if (!trimmed) return
+      const id = uid()
+      const ts = Date.now()
+      const existing = threads.find((t) => t.id === threadId)
+      const peer: Peer = existing?.peer ?? { id: threadId, name: threadId, avatar: '👤', color: '#888' }
+      appendMessage(threadId, peer, { id, mine: true, text: trimmed, ts }, false)
 
-      const myMsg: Message = {
-        id: uid(),
-        conversationId,
-        senderId: 'me',
-        text: trimmed,
-        sentAt: Date.now(),
+      if (realtime && channelRef.current) {
+        const p = profileRef.current
+        void channelRef.current.send({
+          type: 'broadcast',
+          event: 'msg',
+          payload: {
+            id,
+            from: myId,
+            fromProfile: { name: p.name, avatar: p.avatar, color: p.color },
+            to: threadId,
+            text: trimmed,
+            ts,
+          },
+        })
+      } else {
+        // Mock bot cevabı
+        const t1 = window.setTimeout(() => {
+          setTyping((p) => ({ ...p, [threadId]: true }))
+          const t2 = window.setTimeout(() => {
+            setTyping((p) => ({ ...p, [threadId]: false }))
+            appendMessage(
+              threadId,
+              peer,
+              {
+                id: uid(),
+                mine: false,
+                text: BOT_REPLIES[Math.floor(Math.random() * BOT_REPLIES.length)],
+                ts: Date.now(),
+              },
+              activeThreadRef.current !== threadId,
+            )
+          }, 1100)
+          timers.current.push(t2)
+        }, 700)
+        timers.current.push(t1)
       }
-      appendMessage(conversationId, myMsg, false)
-
-      // Sahte cevap akışı: kısa gecikme -> "yazıyor…" -> bot mesajı.
-      const thinkDelay = 600 + Math.random() * 700
-      const typeDelay = 900 + Math.random() * 1100
-
-      const t1 = window.setTimeout(() => {
-        setTyping((p) => ({ ...p, [conversationId]: true }))
-
-        const t2 = window.setTimeout(() => {
-          setTyping((p) => ({ ...p, [conversationId]: false }))
-          const reply: Message = {
-            id: uid(),
-            conversationId,
-            senderId:
-              // sohbetteki karşı kullanıcı
-              '__peer__',
-            text: BOT_REPLIES[Math.floor(Math.random() * BOT_REPLIES.length)],
-            sentAt: Date.now(),
-          }
-          // senderId'yi gerçek peer ile doldur
-          setState((prev) => ({
-            conversations: prev.conversations.map((c) =>
-              c.id === conversationId
-                ? {
-                    ...c,
-                    messages: [...c.messages, { ...reply, senderId: c.userId }],
-                    unread: c.unread + 1,
-                  }
-                : c,
-            ),
-          }))
-        }, typeDelay)
-        timers.current.push(t2)
-      }, thinkDelay)
-      timers.current.push(t1)
     },
-    [appendMessage],
+    [threads, realtime, myId, appendMessage],
   )
 
-  const startConversation = useCallback(
-    (userId: string) => {
-      const existing = state.conversations.find((c) => c.userId === userId)
-      if (existing) return existing.id
-      const id = 'c-' + userId + '-' + uid()
-      setState((prev) => ({
-        conversations: [{ id, userId, messages: [], unread: 0 }, ...prev.conversations],
-      }))
-      return id
+  const notifyTyping = useCallback(
+    (threadId: string, isTyping: boolean) => {
+      if (!realtime || !channelRef.current) return
+      void channelRef.current.send({
+        type: 'broadcast',
+        event: 'typing',
+        payload: { from: myId, to: threadId, isTyping },
+      })
     },
-    [state.conversations],
+    [realtime, myId],
   )
 
-  const markRead = useCallback((conversationId: string) => {
-    setState((prev) => ({
-      conversations: prev.conversations.map((c) =>
-        c.id === conversationId && c.unread !== 0 ? { ...c, unread: 0 } : c,
-      ),
-    }))
+  const startChat = useCallback((peer: Peer) => {
+    setThreads((prev) => {
+      if (prev.some((t) => t.id === peer.id)) return prev
+      return [{ id: peer.id, peer, messages: [], unread: 0 }, ...prev]
+    })
+    return peer.id
   }, [])
 
-  const getConversation = useCallback(
-    (id: string) => state.conversations.find((c) => c.id === id),
-    [state.conversations],
-  )
+  const markRead = useCallback((threadId: string) => {
+    setThreads((prev) =>
+      prev.map((t) => (t.id === threadId && t.unread !== 0 ? { ...t, unread: 0 } : t)),
+    )
+  }, [])
 
-  const totalUnread = useMemo(
-    () => state.conversations.reduce((sum, c) => sum + c.unread, 0),
-    [state.conversations],
-  )
+  const setActiveThread = useCallback((id: string | null) => {
+    activeThreadRef.current = id
+  }, [])
 
-  // En son mesaja göre sıralı konuşmalar.
-  const conversations = useMemo(
+  const getThread = useCallback((id: string) => threads.find((t) => t.id === id), [threads])
+
+  const totalUnread = useMemo(() => threads.reduce((s, t) => s + t.unread, 0), [threads])
+
+  const sortedThreads = useMemo(
     () =>
-      [...state.conversations].sort((a, b) => {
-        const la = a.messages[a.messages.length - 1]?.sentAt ?? 0
-        const lb = b.messages[b.messages.length - 1]?.sentAt ?? 0
+      [...threads].sort((a, b) => {
+        const la = a.messages[a.messages.length - 1]?.ts ?? 0
+        const lb = b.messages[b.messages.length - 1]?.ts ?? 0
         return lb - la
       }),
-    [state.conversations],
+    [threads],
   )
 
   const value: ChatContextValue = {
-    conversations,
-    getConversation,
+    threads: sortedThreads,
+    onlineUsers,
+    realtime,
+    myId,
+    getThread,
+    startChat,
     sendMessage,
+    notifyTyping,
     markRead,
-    startConversation,
+    setActiveThread,
     typing,
     totalUnread,
   }
@@ -198,8 +321,4 @@ export function useChat() {
   const ctx = useContext(ChatContext)
   if (!ctx) throw new Error('useChat must be used within <ChatProvider>')
   return ctx
-}
-
-export function userOf(conversation: Conversation) {
-  return USERS[conversation.userId]
 }

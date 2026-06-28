@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Avatar from '../components/Avatar'
-import { useChat, userOf } from '../data/chatStore'
+import { useChat } from '../data/chatStore'
 import { clockTime } from '../utils/time'
 
 const EMOJIS = ['😀', '😂', '😍', '😎', '🥳', '😭', '🔥', '👍', '❤️', '🎮', '🍈', '🎉', '🙌', '💯', '🤔', '😴']
@@ -9,52 +9,64 @@ const EMOJIS = ['😀', '😂', '😍', '😎', '🥳', '😭', '🔥', '👍', 
 export default function ChatRoomPage() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
-  const { getConversation, sendMessage, markRead, typing } = useChat()
+  const { getThread, sendMessage, markRead, notifyTyping, setActiveThread, typing } = useChat()
   const [draft, setDraft] = useState('')
   const [showEmoji, setShowEmoji] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const typingTimer = useRef<number | null>(null)
 
-  const conversation = getConversation(id)
+  const thread = getThread(id)
   const isTyping = typing[id]
 
-  // Açılışta okundu işaretle.
+  // Açık thread'i işaretle + okundu
   useEffect(() => {
-    if (conversation) markRead(conversation.id)
+    setActiveThread(id)
+    if (thread) markRead(id)
+    return () => setActiveThread(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
-  // Yeni mesaj / yazıyor durumunda en alta kaydır.
+  // Yeni mesaj gelince de okundu say
+  useEffect(() => {
+    if (thread && thread.unread > 0) markRead(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [thread?.messages.length])
+
   useLayoutEffect(() => {
     const el = scrollRef.current
     if (el) el.scrollTop = el.scrollHeight
-  }, [conversation?.messages.length, isTyping])
+  }, [thread?.messages.length, isTyping])
 
-  if (!conversation) {
+  if (!thread) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
         <p className="text-white/60">Sohbet bulunamadı.</p>
-        <button
-          onClick={() => navigate('/')}
-          className="rounded-xl bg-papaya-500 px-4 py-2 font-semibold text-white"
-        >
+        <button onClick={() => navigate('/')} className="rounded-xl bg-papaya-500 px-4 py-2 font-semibold text-white">
           Sohbetlere dön
         </button>
       </div>
     )
   }
 
-  const user = userOf(conversation)
+  const peer = thread.peer
+
+  const onDraftChange = (v: string) => {
+    setDraft(v)
+    notifyTyping(id, true)
+    if (typingTimer.current) window.clearTimeout(typingTimer.current)
+    typingTimer.current = window.setTimeout(() => notifyTyping(id, false), 1500)
+  }
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault()
     if (!draft.trim()) return
-    sendMessage(conversation.id, draft)
+    sendMessage(id, draft)
     setDraft('')
+    notifyTyping(id, false)
   }
 
   return (
     <div className="flex h-full flex-col bg-ink-900">
-      {/* Başlık */}
       <header className="flex items-center gap-3 border-b border-ink-700 bg-ink-800/90 px-3 py-2.5 backdrop-blur">
         <button
           onClick={() => navigate('/')}
@@ -63,11 +75,11 @@ export default function ChatRoomPage() {
         >
           ‹
         </button>
-        <Avatar emoji={user.avatar} color={user.color} size={40} online={user.online} />
+        <Avatar emoji={peer.avatar} color={peer.color} size={40} online={peer.online} />
         <div className="min-w-0 flex-1">
-          <div className="truncate font-semibold text-white">{user.name}</div>
+          <div className="truncate font-semibold text-white">{peer.name}</div>
           <div className="text-xs text-papaya-400">
-            {isTyping ? 'yazıyor…' : user.online ? 'çevrimiçi' : 'çevrimdışı'}
+            {isTyping ? 'yazıyor…' : peer.online ? 'çevrimiçi' : 'çevrimdışı'}
           </div>
         </div>
         <button
@@ -79,34 +91,21 @@ export default function ChatRoomPage() {
         </button>
       </header>
 
-      {/* Mesajlar */}
       <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto px-4 py-4">
-        {conversation.messages.map((m) => {
-          const mine = m.senderId === 'me'
-          return (
+        {thread.messages.map((m) => (
+          <div key={m.id} className={`flex animate-slide-up ${m.mine ? 'justify-end' : 'justify-start'}`}>
             <div
-              key={m.id}
-              className={`flex animate-slide-up ${mine ? 'justify-end' : 'justify-start'}`}
+              className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-[15px] leading-snug shadow-sm ${
+                m.mine ? 'rounded-br-md bg-papaya-500 text-white' : 'rounded-bl-md bg-ink-700 text-white/90'
+              }`}
             >
-              <div
-                className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-[15px] leading-snug shadow-sm ${
-                  mine
-                    ? 'rounded-br-md bg-papaya-500 text-white'
-                    : 'rounded-bl-md bg-ink-700 text-white/90'
-                }`}
-              >
-                <span className="whitespace-pre-wrap break-words">{m.text}</span>
-                <span
-                  className={`ml-2 inline-block translate-y-0.5 text-[10px] ${
-                    mine ? 'text-white/70' : 'text-white/40'
-                  }`}
-                >
-                  {clockTime(m.sentAt)}
-                </span>
-              </div>
+              <span className="whitespace-pre-wrap break-words">{m.text}</span>
+              <span className={`ml-2 inline-block translate-y-0.5 text-[10px] ${m.mine ? 'text-white/70' : 'text-white/40'}`}>
+                {clockTime(m.ts)}
+              </span>
             </div>
-          )
-        })}
+          </div>
+        ))}
 
         {isTyping && (
           <div className="flex justify-start">
@@ -119,7 +118,6 @@ export default function ChatRoomPage() {
         )}
       </div>
 
-      {/* Emoji paneli */}
       {showEmoji && (
         <div className="flex flex-wrap gap-1 border-t border-ink-700 bg-ink-800 px-3 py-2 animate-slide-up">
           {EMOJIS.map((e) => (
@@ -135,7 +133,6 @@ export default function ChatRoomPage() {
         </div>
       )}
 
-      {/* Mesaj yazma alanı */}
       <form
         onSubmit={handleSend}
         className="flex items-center gap-2 border-t border-ink-700 bg-ink-800 px-3 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))]"
@@ -152,7 +149,7 @@ export default function ChatRoomPage() {
         </button>
         <input
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => onDraftChange(e.target.value)}
           placeholder="Mesaj yaz…"
           className="flex-1 rounded-full border border-ink-600 bg-ink-900 px-4 py-2.5 text-[15px] text-white placeholder:text-white/35 outline-none transition focus:border-papaya-500"
         />
@@ -170,10 +167,5 @@ export default function ChatRoomPage() {
 }
 
 function Dot({ delay }: { delay: string }) {
-  return (
-    <span
-      className="h-2 w-2 animate-bounce rounded-full bg-white/50"
-      style={{ animationDelay: delay }}
-    />
-  )
+  return <span className="h-2 w-2 animate-bounce rounded-full bg-white/50" style={{ animationDelay: delay }} />
 }

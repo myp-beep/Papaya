@@ -32,6 +32,29 @@ export interface ChatState {
   conversations: Conversation[]
 }
 
+// --- Realtime-first uniform sohbet modeli ---
+export interface Peer {
+  id: string
+  name: string
+  avatar: string
+  color: string
+  online?: boolean
+}
+
+export interface ChatMessage {
+  id: string
+  mine: boolean
+  text: string
+  ts: number
+}
+
+export interface ChatThread {
+  id: string // = peer.id (1-1)
+  peer: Peer
+  messages: ChatMessage[]
+  unread: number
+}
+
 export interface Post {
   id: string
   /** Gönderiyi paylaşan kullanıcı id'si ('me' dahil). */

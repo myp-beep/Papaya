@@ -1,8 +1,8 @@
 import { createContext, createElement, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Profile } from '../types'
 import { ME, USERS } from './mockData'
-import { isSupabaseConfigured, supabase } from '../lib/supabase'
-import { useAuth } from './authStore'
+import { isSupabaseConfigured } from '../lib/supabase'
+import { getClientId } from '../lib/identity'
 
 const PROFILE_KEY = 'papaya.profile.v1'
 const ONBOARDED_KEY = 'papaya.onboarded.v1'
@@ -26,95 +26,42 @@ function loadProfile(): Profile {
 
 interface ProfileContextValue {
   profile: Profile
-  /** Gerçek modda auth kullanıcı id'si; mock modda 'me'. */
-  userId: string | null
-  /** Profil yüklendi mi (gerçek modda ilk fetch). */
+  /** Realtime modda cihaz kimliği; mock modda 'me'. */
+  userId: string
   ready: boolean
   updateProfile: (patch: Partial<Profile>) => void
   onboarded: boolean
-  /** Karşılama ekranını tamamla: profili kaydet + bayrağı işaretle. */
   completeOnboarding: (patch: Partial<Profile>) => void
 }
 
 const ProfileContext = createContext<ProfileContextValue | null>(null)
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
-  const { configured, session } = useAuth()
   const [profile, setProfile] = useState<Profile>(loadProfile)
-  const [onboarded, setOnboarded] = useState<boolean>(
-    () => !isSupabaseConfigured && localStorage.getItem(ONBOARDED_KEY) === '1',
-  )
-  const [ready, setReady] = useState<boolean>(!isSupabaseConfigured)
+  const [onboarded, setOnboarded] = useState<boolean>(() => localStorage.getItem(ONBOARDED_KEY) === '1')
+  const userId = isSupabaseConfigured ? getClientId() : 'me'
 
-  const userId = configured ? (session?.user.id ?? null) : 'me'
-
-  // MOCK mod: profili localStorage'a yaz
   useEffect(() => {
-    if (configured) return
     try {
       localStorage.setItem(PROFILE_KEY, JSON.stringify(profile))
     } catch {
       /* yoksay */
     }
-  }, [profile, configured])
+  }, [profile])
 
-  // GERÇEK mod: oturum değişince profili DB'den yükle (yoksa oluştur)
-  useEffect(() => {
-    if (!configured || !supabase) return
-    if (!session) {
-      setReady(true)
-      return
-    }
-    setReady(false)
-    let cancelled = false
-    const uid = session.user.id
-    ;(async () => {
-      const cols = 'name,avatar,color,status,onboarded'
-      let { data } = await supabase!.from('profiles').select(cols).eq('id', uid).maybeSingle()
-      if (!data) {
-        // trigger satırı oluşturmadıysa varsayılan ekle
-        await supabase!.from('profiles').upsert({ id: uid }).select().maybeSingle()
-        const r = await supabase!.from('profiles').select(cols).eq('id', uid).maybeSingle()
-        data = r.data
-      }
-      if (cancelled) return
-      if (data) {
-        setProfile({ name: data.name, avatar: data.avatar, color: data.color, status: data.status })
-        setOnboarded(Boolean(data.onboarded))
-      }
-      setReady(true)
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [configured, session])
+  const updateProfile = useCallback((patch: Partial<Profile>) => {
+    setProfile((prev) => ({ ...prev, ...patch }))
+  }, [])
 
-  const updateProfile = useCallback(
-    (patch: Partial<Profile>) => {
-      setProfile((prev) => ({ ...prev, ...patch }))
-      if (configured && supabase && session) {
-        void supabase.from('profiles').update(patch).eq('id', session.user.id)
-      }
-    },
-    [configured, session],
-  )
-
-  const completeOnboarding = useCallback(
-    (patch: Partial<Profile>) => {
-      setProfile((prev) => ({ ...prev, ...patch }))
-      setOnboarded(true)
-      if (configured && supabase && session) {
-        void supabase.from('profiles').update({ ...patch, onboarded: true }).eq('id', session.user.id)
-      } else {
-        localStorage.setItem(ONBOARDED_KEY, '1')
-      }
-    },
-    [configured, session],
-  )
+  const completeOnboarding = useCallback((patch: Partial<Profile>) => {
+    setProfile((prev) => ({ ...prev, ...patch }))
+    localStorage.setItem(ONBOARDED_KEY, '1')
+    setOnboarded(true)
+  }, [])
 
   return createElement(
     ProfileContext.Provider,
-    { value: { profile, userId, ready, updateProfile, onboarded, completeOnboarding } },
+    { value: { profile, userId, ready: true, updateProfile, onboarded, completeOnboarding } },
     children,
   )
 }

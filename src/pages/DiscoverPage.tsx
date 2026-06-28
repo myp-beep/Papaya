@@ -9,13 +9,15 @@ import { relativeTime } from '../utils/time'
 export default function DiscoverPage() {
   const { posts, toggleLike, addPost } = useFeed()
   const { profile } = useProfile()
-  const { startConversation } = useChat()
+  const { startChat } = useChat()
   const navigate = useNavigate()
   const [draft, setDraft] = useState('')
 
   const openChatWith = (authorId: string) => {
     if (authorId === 'me') return
-    navigate(`/chat/${startConversation(authorId)}`)
+    const a = resolveAuthor(authorId, profile)
+    const id = startChat({ id: authorId, name: a.name, avatar: a.avatar, color: a.color, online: true })
+    navigate(`/chat/${id}`)
   }
 
   const handlePost = (e: React.FormEvent) => {
