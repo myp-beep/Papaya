@@ -15,6 +15,16 @@ WePlay tarzı sosyal bir "süper uygulama" için genişletilebilir bir temel.
 - **Capacitor** — aynı web kodunu iOS/Android'e sarmalar (mobil)
 - Veri: React Context + `localStorage` (backend yok, demo/mock)
 
+## Canlı demo
+
+`claude/naber-m9dcoi` dalına her push'ta GitHub Actions otomatik derleyip
+GitHub Pages'e deploy eder:
+
+**https://myp-beep.github.io/Papaya/**
+
+> İlk seferde repo ayarlarından **Settings → Pages → Source: GitHub Actions**
+> seçili olmalı (workflow bunu otomatik etkinleştirmeyi dener).
+
 ## Çalıştırma (web)
 
 ```bash
