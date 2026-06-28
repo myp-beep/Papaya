@@ -1,7 +1,9 @@
 import { Route, Routes } from 'react-router-dom'
 import AppShell from './components/AppShell'
 import WelcomePage from './pages/WelcomePage'
+import AuthPage from './pages/AuthPage'
 import { useProfile } from './data/profileStore'
+import { useAuth } from './data/authStore'
 import ChatListPage from './pages/ChatListPage'
 import ChatRoomPage from './pages/ChatRoomPage'
 import NewChatPage from './pages/NewChatPage'
@@ -14,12 +16,20 @@ import ProfilePage from './pages/ProfilePage'
 
 export default function App() {
   const { onboarded } = useProfile()
+  const { configured, loading, session } = useAuth()
+
+  // Gerçek backend modu: önce oturum kapısı. Anahtar yoksa bu blok atlanır.
+  const needsAuth = configured && !session
 
   return (
     // Masaüstünde ortalanmış "telefon" çerçevesi, mobilde tam ekran.
     <div className="flex min-h-full items-center justify-center sm:p-6">
       <div className="relative flex h-[100dvh] w-full max-w-[440px] flex-col overflow-hidden bg-ink-900 sm:h-[860px] sm:max-h-[92vh] sm:rounded-[2.2rem] sm:border sm:border-ink-600 sm:shadow-card">
-        {!onboarded ? (
+        {configured && loading ? (
+          <div className="flex h-full items-center justify-center text-5xl animate-pop-in">🍈</div>
+        ) : needsAuth ? (
+          <AuthPage />
+        ) : !onboarded ? (
           <WelcomePage />
         ) : (
         <Routes>

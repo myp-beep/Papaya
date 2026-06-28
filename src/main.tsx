@@ -5,6 +5,7 @@ import './index.css'
 import App from './App'
 import { ChatProvider } from './data/chatStore'
 import { ProfileProvider } from './data/profileStore'
+import { AuthProvider } from './data/authStore'
 
 // PWA: service worker'ı yalnızca üretimde kaydet (offline + kurulabilirlik)
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
@@ -16,11 +17,13 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <HashRouter>
-      <ProfileProvider>
-        <ChatProvider>
-          <App />
-        </ChatProvider>
-      </ProfileProvider>
+      <AuthProvider>
+        <ProfileProvider>
+          <ChatProvider>
+            <App />
+          </ChatProvider>
+        </ProfileProvider>
+      </AuthProvider>
     </HashRouter>
   </StrictMode>,
 )
