@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background:
+    radial-gradient(1200px 600px at 50% -10%, rgba(249, 88, 22, 0.18), transparent 60%),
+    radial-gradient(900px 500px at 100% 100%, rgba(139, 92, 246, 0.14), transparent 55%),
+    #0a0810;
+  color: #f4f1f7;
+}
+
+/* İnce, tema uyumlu kaydırma çubuğu */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #3a3357 transparent;
+}
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #3a3357;
+  border-radius: 999px;
+}
+
+@layer components {
+  .tab-active {
+    @apply text-papaya-400;
+  }
+}
