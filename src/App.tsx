@@ -15,17 +15,18 @@ import DiscoverPage from './pages/DiscoverPage'
 import ProfilePage from './pages/ProfilePage'
 
 export default function App() {
-  const { onboarded } = useProfile()
+  const { onboarded, ready: profileReady } = useProfile()
   const { configured, loading, session } = useAuth()
 
   // Gerçek backend modu: önce oturum kapısı. Anahtar yoksa bu blok atlanır.
   const needsAuth = configured && !session
+  const booting = configured && (loading || (!!session && !profileReady))
 
   return (
     // Masaüstünde ortalanmış "telefon" çerçevesi, mobilde tam ekran.
     <div className="flex min-h-full items-center justify-center sm:p-6">
       <div className="relative flex h-[100dvh] w-full max-w-[440px] flex-col overflow-hidden bg-ink-900 sm:h-[860px] sm:max-h-[92vh] sm:rounded-[2.2rem] sm:border sm:border-ink-600 sm:shadow-card">
-        {configured && loading ? (
+        {booting ? (
           <div className="flex h-full items-center justify-center text-5xl animate-pop-in">🍈</div>
         ) : needsAuth ? (
           <AuthPage />
