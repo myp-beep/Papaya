@@ -1,13 +1,22 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Avatar from '../components/Avatar'
 import { useFeed } from '../data/feedStore'
+import { useChat } from '../data/chatStore'
 import { resolveAuthor, useProfile } from '../data/profileStore'
 import { relativeTime } from '../utils/time'
 
 export default function DiscoverPage() {
   const { posts, toggleLike, addPost } = useFeed()
   const { profile } = useProfile()
+  const { startConversation } = useChat()
+  const navigate = useNavigate()
   const [draft, setDraft] = useState('')
+
+  const openChatWith = (authorId: string) => {
+    if (authorId === 'me') return
+    navigate(`/chat/${startConversation(authorId)}`)
+  }
 
   const handlePost = (e: React.FormEvent) => {
     e.preventDefault()
@@ -55,13 +64,22 @@ export default function DiscoverPage() {
           return (
             <article key={p.id} className="rounded-2xl border border-ink-700 bg-ink-800 p-4 shadow-card animate-slide-up">
               <div className="flex items-center gap-3">
-                <Avatar emoji={author.avatar} color={author.color} size={40} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-2">
-                    <span className="truncate font-semibold text-white">{author.name}</span>
-                    <span className="text-xs text-white/40">· {relativeTime(p.createdAt)}</span>
+                <button
+                  onClick={() => openChatWith(p.authorId)}
+                  disabled={p.authorId === 'me'}
+                  className="flex min-w-0 flex-1 items-center gap-3 text-left disabled:cursor-default"
+                >
+                  <Avatar emoji={author.avatar} color={author.color} size={40} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline gap-2">
+                      <span className="truncate font-semibold text-white">{author.name}</span>
+                      <span className="text-xs text-white/40">· {relativeTime(p.createdAt)}</span>
+                    </div>
                   </div>
-                </div>
+                </button>
+                {p.authorId !== 'me' && (
+                  <span className="text-xs text-white/30" title="Sohbet başlat">💬</span>
+                )}
               </div>
               <p className="mt-2 whitespace-pre-wrap break-words text-[15px] text-white/85">{p.text}</p>
               <div className="mt-3 flex items-center gap-4 text-sm">

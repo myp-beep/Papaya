@@ -70,6 +70,13 @@ export default function ChatRoomPage() {
             {isTyping ? 'yazıyor…' : user.online ? 'çevrimiçi' : 'çevrimdışı'}
           </div>
         </div>
+        <button
+          onClick={() => navigate('/games/tic')}
+          className="flex h-9 w-9 items-center justify-center rounded-full text-lg text-white/60 transition hover:bg-ink-700"
+          title="Birlikte oyna"
+        >
+          🎮
+        </button>
       </header>
 
       {/* Mesajlar */}
