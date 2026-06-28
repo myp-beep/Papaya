@@ -66,6 +66,25 @@ function seedMockThreads(): ChatThread[] {
 
 const BOT_REPLIES = ['Aynen öyle 😄', 'Haha kesinlikle!', 'Bunu sevdim 🔥', 'Oyuna var mısın? 🎮', 'Papaya çok iyi olmuş 🍈']
 
+// Realtime modda solo kullanıcıya etkileşimli karşılama (gerçek kişiler presence ile gelir)
+const BOT_ID = 'papaya-bot'
+const BOT_PEER: Peer = { id: BOT_ID, name: 'Papaya Bot', avatar: '🍈', color: '#f95816', online: true }
+
+function seedRealtimeThreads(): ChatThread[] {
+  const now = Date.now()
+  return [
+    {
+      id: BOT_ID,
+      peer: BOT_PEER,
+      unread: 1,
+      messages: [
+        { id: 'b1', mine: false, text: "Papaya'ya hoş geldin! 🍈 Ben botum, bana yaz.", ts: now - 5 * 60000 },
+        { id: 'b2', mine: false, text: '＋ ile çevrimiçi gerçek kişilerle CANLI sohbet et — aynı linki başka bir cihazda aç! 👀', ts: now - 60000 },
+      ],
+    },
+  ]
+}
+
 interface ChatContextValue {
   threads: ChatThread[]
   onlineUsers: Peer[]
@@ -88,9 +107,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const realtime = isSupabaseConfigured
   const myId = useMemo(() => (realtime ? getClientId() : 'me'), [realtime])
 
-  const [threads, setThreads] = useState<ChatThread[]>(() =>
-    realtime ? loadThreads() : seedMockThreads(),
-  )
+  const [threads, setThreads] = useState<ChatThread[]>(() => {
+    if (!realtime) return seedMockThreads()
+    const stored = loadThreads()
+    return stored.length ? stored : seedRealtimeThreads()
+  })
   const [onlineUsers, setOnlineUsers] = useState<Peer[]>(realtime ? [] : MOCK_PEERS)
   const [typing, setTyping] = useState<Record<string, boolean>>({})
 
@@ -215,7 +236,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       const peer: Peer = existing?.peer ?? { id: threadId, name: threadId, avatar: '👤', color: '#888' }
       appendMessage(threadId, peer, { id, mine: true, text: trimmed, ts }, false)
 
-      if (realtime && channelRef.current) {
+      if (realtime && channelRef.current && threadId !== BOT_ID) {
         const p = profileRef.current
         void channelRef.current.send({
           type: 'broadcast',
