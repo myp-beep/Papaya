@@ -3,6 +3,7 @@ import AppShell from './components/AppShell'
 import ChatListPage from './pages/ChatListPage'
 import ChatRoomPage from './pages/ChatRoomPage'
 import GamesPage from './pages/GamesPage'
+import MemoryGamePage from './pages/MemoryGamePage'
 import DiscoverPage from './pages/DiscoverPage'
 import ProfilePage from './pages/ProfilePage'
 
@@ -16,6 +17,7 @@ export default function App() {
           <Route element={<AppShell />}>
             <Route index element={<ChatListPage />} />
             <Route path="games" element={<GamesPage />} />
+            <Route path="games/memory" element={<MemoryGamePage />} />
             <Route path="discover" element={<DiscoverPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
