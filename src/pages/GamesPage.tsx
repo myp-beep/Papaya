@@ -9,9 +9,9 @@ interface GameItem {
 
 const GAMES: GameItem[] = [
   { emoji: '🧠', name: 'Hafıza', desc: 'Çiftleri eşleştir', to: '/games/memory' },
-  { emoji: '🎯', name: 'Hedef', desc: 'Yakında' },
+  { emoji: '⭕', name: 'XOX', desc: 'Bota karşı', to: '/games/tic' },
   { emoji: '🧩', name: 'Bulmaca', desc: 'Yakında' },
-  { emoji: '♟️', name: 'Strateji', desc: 'Yakında' },
+  { emoji: '🏎️', name: 'Yarış', desc: 'Yakında' },
 ]
 
 export default function GamesPage() {
