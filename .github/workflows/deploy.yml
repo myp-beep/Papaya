@@ -30,6 +30,11 @@ jobs:
 
       - run: npm ci
       - run: npm run build
+        env:
+          # Repo Settings > Secrets and variables > Actions altına ekle.
+          # Yoksa uygulama mock fallback ile çalışır (bozulmaz).
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
