@@ -25,8 +25,9 @@ export default function ChatListPage() {
             <span className="text-2xl">🍈</span> Papaya
           </h1>
           <button
+            onClick={() => navigate('/new-chat')}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-ink-700 text-lg text-white/70 transition hover:bg-ink-600"
-            title="Yeni sohbet (yakında)"
+            title="Yeni sohbet"
           >
             ＋
           </button>

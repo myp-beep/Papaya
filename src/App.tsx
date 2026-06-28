@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import AppShell from './components/AppShell'
 import ChatListPage from './pages/ChatListPage'
 import ChatRoomPage from './pages/ChatRoomPage'
+import NewChatPage from './pages/NewChatPage'
 import GamesPage from './pages/GamesPage'
 import MemoryGamePage from './pages/MemoryGamePage'
 import TicTacToePage from './pages/TicTacToePage'
@@ -17,6 +18,7 @@ export default function App() {
           {/* Tab bar'lı ana ekranlar */}
           <Route element={<AppShell />}>
             <Route index element={<ChatListPage />} />
+            <Route path="new-chat" element={<NewChatPage />} />
             <Route path="games" element={<GamesPage />} />
             <Route path="games/memory" element={<MemoryGamePage />} />
             <Route path="games/tic" element={<TicTacToePage />} />

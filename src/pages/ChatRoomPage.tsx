@@ -4,11 +4,14 @@ import Avatar from '../components/Avatar'
 import { useChat, userOf } from '../data/chatStore'
 import { clockTime } from '../utils/time'
 
+const EMOJIS = ['😀', '😂', '😍', '😎', '🥳', '😭', '🔥', '👍', '❤️', '🎮', '🍈', '🎉', '🙌', '💯', '🤔', '😴']
+
 export default function ChatRoomPage() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const { getConversation, sendMessage, markRead, typing } = useChat()
   const [draft, setDraft] = useState('')
+  const [showEmoji, setShowEmoji] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const conversation = getConversation(id)
@@ -109,11 +112,37 @@ export default function ChatRoomPage() {
         )}
       </div>
 
+      {/* Emoji paneli */}
+      {showEmoji && (
+        <div className="flex flex-wrap gap-1 border-t border-ink-700 bg-ink-800 px-3 py-2 animate-slide-up">
+          {EMOJIS.map((e) => (
+            <button
+              key={e}
+              type="button"
+              onClick={() => setDraft((d) => d + e)}
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-xl transition hover:bg-ink-700"
+            >
+              {e}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Mesaj yazma alanı */}
       <form
         onSubmit={handleSend}
         className="flex items-center gap-2 border-t border-ink-700 bg-ink-800 px-3 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))]"
       >
+        <button
+          type="button"
+          onClick={() => setShowEmoji((s) => !s)}
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xl transition ${
+            showEmoji ? 'bg-papaya-500/20 text-papaya-400' : 'text-white/50 hover:bg-ink-700'
+          }`}
+          aria-label="Emoji"
+        >
+          😊
+        </button>
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}

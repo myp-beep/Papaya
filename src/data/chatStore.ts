@@ -53,6 +53,8 @@ interface ChatContextValue {
   getConversation: (id: string) => Conversation | undefined
   sendMessage: (conversationId: string, text: string) => void
   markRead: (conversationId: string) => void
+  /** Kullanıcıyla sohbet başlat (varsa mevcut id'yi döndürür). */
+  startConversation: (userId: string) => string
   typing: Record<string, boolean>
   totalUnread: number
 }
@@ -137,6 +139,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     [appendMessage],
   )
 
+  const startConversation = useCallback(
+    (userId: string) => {
+      const existing = state.conversations.find((c) => c.userId === userId)
+      if (existing) return existing.id
+      const id = 'c-' + userId + '-' + uid()
+      setState((prev) => ({
+        conversations: [{ id, userId, messages: [], unread: 0 }, ...prev.conversations],
+      }))
+      return id
+    },
+    [state.conversations],
+  )
+
   const markRead = useCallback((conversationId: string) => {
     setState((prev) => ({
       conversations: prev.conversations.map((c) =>
@@ -171,6 +186,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     getConversation,
     sendMessage,
     markRead,
+    startConversation,
     typing,
     totalUnread,
   }
