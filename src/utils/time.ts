@@ -16,3 +16,17 @@ export function shortTime(ts: number): string {
 export function clockTime(ts: number): string {
   return new Date(ts).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
 }
+
+/** Akış için göreli zaman: "az önce", "5 dk", "2 sa", "Dün", tarih. */
+export function relativeTime(ts: number): string {
+  const diff = Date.now() - ts
+  const m = Math.floor(diff / 60_000)
+  if (m < 1) return 'az önce'
+  if (m < 60) return `${m} dk`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h} sa`
+  const d = Math.floor(h / 24)
+  if (d === 1) return 'Dün'
+  if (d < 7) return `${d} gün`
+  return new Date(ts).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' })
+}

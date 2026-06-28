@@ -31,3 +31,21 @@ export interface Conversation {
 export interface ChatState {
   conversations: Conversation[]
 }
+
+export interface Post {
+  id: string
+  /** Gönderiyi paylaşan kullanıcı id'si ('me' dahil). */
+  authorId: string
+  text: string
+  likes: number
+  likedByMe: boolean
+  createdAt: number
+}
+
+/** Düzenlenebilir profil (localStorage). */
+export interface Profile {
+  name: string
+  avatar: string
+  color: string
+  status: string
+}
