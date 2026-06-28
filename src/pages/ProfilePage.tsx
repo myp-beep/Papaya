@@ -41,6 +41,14 @@ export default function ProfilePage() {
     setEditing(false)
   }
 
+  const resetData = () => {
+    if (!confirm('Tüm Papaya verileri (sohbet, profil, oyun skorları) silinsin mi?')) return
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith('papaya.'))
+      .forEach((k) => localStorage.removeItem(k))
+    location.reload()
+  }
+
   return (
     <div className="flex flex-1 flex-col">
       <header className="flex items-center justify-between px-5 pb-2 pt-5">
@@ -152,6 +160,15 @@ export default function ProfilePage() {
             </li>
           ))}
         </ul>
+      )}
+
+      {!editing && (
+        <button
+          onClick={resetData}
+          className="mx-5 mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 py-3 text-sm font-semibold text-red-400 transition hover:bg-red-500/20"
+        >
+          🗑️ Verileri sıfırla
+        </button>
       )}
 
       <p className="mt-auto py-6 text-center text-xs text-white/30">Papaya · v0.1.0 (demo)</p>

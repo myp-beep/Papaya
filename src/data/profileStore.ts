@@ -3,6 +3,7 @@ import type { Profile } from '../types'
 import { ME, USERS } from './mockData'
 
 const PROFILE_KEY = 'papaya.profile.v1'
+const ONBOARDED_KEY = 'papaya.onboarded.v1'
 
 const DEFAULT_PROFILE: Profile = {
   name: ME.name,
@@ -24,12 +25,16 @@ function loadProfile(): Profile {
 interface ProfileContextValue {
   profile: Profile
   updateProfile: (patch: Partial<Profile>) => void
+  onboarded: boolean
+  /** Karşılama ekranını tamamla: profili kaydet + bayrağı işaretle. */
+  completeOnboarding: (patch: Partial<Profile>) => void
 }
 
 const ProfileContext = createContext<ProfileContextValue | null>(null)
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile>(loadProfile)
+  const [onboarded, setOnboarded] = useState<boolean>(() => localStorage.getItem(ONBOARDED_KEY) === '1')
 
   useEffect(() => {
     try {
@@ -43,7 +48,17 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     setProfile((prev) => ({ ...prev, ...patch }))
   }, [])
 
-  return createElement(ProfileContext.Provider, { value: { profile, updateProfile } }, children)
+  const completeOnboarding = useCallback((patch: Partial<Profile>) => {
+    setProfile((prev) => ({ ...prev, ...patch }))
+    localStorage.setItem(ONBOARDED_KEY, '1')
+    setOnboarded(true)
+  }, [])
+
+  return createElement(
+    ProfileContext.Provider,
+    { value: { profile, updateProfile, onboarded, completeOnboarding } },
+    children,
+  )
 }
 
 export function useProfile() {
