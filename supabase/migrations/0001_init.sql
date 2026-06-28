@@ -15,6 +15,7 @@ create table if not exists public.profiles (
   avatar     text not null default '😎',
   color      text not null default '#f95816',
   status     text not null default 'Papaya’dayım 🍈',
+  onboarded  boolean not null default false,
   last_seen  timestamptz not null default now(),
   created_at timestamptz not null default now()
 );
@@ -121,6 +122,27 @@ drop policy if exists "mesaj gönder (üyeysen)" on public.messages;
 create policy "mesaj gönder (üyeysen)"
   on public.messages for insert to authenticated
   with check (sender_id = auth.uid() and public.is_conversation_member(conversation_id, auth.uid()));
+
+-- 1-1 sohbeti atomik bul-veya-oluştur (RLS'i güvenle aşar)
+create or replace function public.get_or_create_dm(other_user uuid)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare
+  me uuid := auth.uid();
+  cid uuid;
+begin
+  if me is null then raise exception 'not authenticated'; end if;
+  if other_user = me then raise exception 'cannot DM self'; end if;
+  select c.id into cid
+  from public.conversations c
+  join public.conversation_members m1 on m1.conversation_id = c.id and m1.user_id = me
+  join public.conversation_members m2 on m2.conversation_id = c.id and m2.user_id = other_user
+  where c.is_group = false
+  limit 1;
+  if cid is not null then return cid; end if;
+  insert into public.conversations (is_group, created_by) values (false, me) returning id into cid;
+  insert into public.conversation_members (conversation_id, user_id) values (cid, me), (cid, other_user);
+  return cid;
+end; $$;
 
 -------------------------------------------------------------------------------
 -- 3) AKIŞ: GÖNDERİLER + BEĞENİ + YORUM
