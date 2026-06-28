@@ -6,6 +6,13 @@ import App from './App'
 import { ChatProvider } from './data/chatStore'
 import { ProfileProvider } from './data/profileStore'
 
+// PWA: service worker'ı yalnızca üretimde kaydet (offline + kurulabilirlik)
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {})
+  })
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <HashRouter>

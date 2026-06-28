@@ -39,7 +39,13 @@ npm run build      # dist/ üretir
 npm run preview    # derlemeyi yerelde önizle
 ```
 
-## Mobil (Capacitor)
+## Mobil — 2 yol
+
+### A) PWA (en hızlı, kurulum yok)
+Uygulama bir **PWA**: telefon tarayıcısında canlı URL'i aç → **"Ana ekrana ekle"**.
+Tam ekran açılır, ikonu olur ve **çevrimdışı** çalışır (service worker + manifest).
+
+### B) Capacitor (native sarmalayıcı)
 
 Web kodu doğrudan mobil uygulama olur — yeniden yazım yok.
 
