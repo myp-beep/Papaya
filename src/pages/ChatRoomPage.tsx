@@ -4,6 +4,7 @@ import Avatar from '../components/Avatar'
 import { useChat } from '../data/chatStore'
 import { useProfile } from '../data/profileStore'
 import { clockTime } from '../utils/time'
+import { haptic } from '../lib/haptics'
 
 const EMOJIS = ['😀', '😂', '😍', '😎', '🥳', '😭', '🔥', '👍', '❤️', '🎮', '🍈', '🎉', '🙌', '💯', '🤔', '😴']
 
@@ -65,6 +66,7 @@ export default function ChatRoomPage() {
     sendMessage(id, draft)
     setDraft('')
     notifyTyping(id, false)
+    haptic('light')
   }
 
   const canPlayOnline = realtime && peer.online && peer.id !== 'papaya-bot'
@@ -114,8 +116,10 @@ export default function ChatRoomPage() {
         {thread.messages.map((m) => (
           <div key={m.id} className={`flex animate-slide-up ${m.mine ? 'justify-end' : 'justify-start'}`}>
             <div
-              className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-[15px] leading-snug shadow-sm ${
-                m.mine ? 'rounded-br-md bg-papaya-500 text-white' : 'rounded-bl-md bg-ink-700 text-white/90'
+              className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-[15px] leading-snug shadow-md ${
+                m.mine
+                  ? 'rounded-br-md bg-gradient-to-br from-papaya-400 to-papaya-600 text-white shadow-glow'
+                  : 'rounded-bl-md border border-white/5 bg-ink-700/80 text-white/90 backdrop-blur'
               }`}
             >
               <span className="whitespace-pre-wrap break-words">{m.text}</span>

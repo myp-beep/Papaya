@@ -16,10 +16,12 @@ body {
   margin: 0;
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   background:
-    radial-gradient(1200px 600px at 50% -10%, rgba(249, 88, 22, 0.18), transparent 60%),
-    radial-gradient(900px 500px at 100% 100%, rgba(139, 92, 246, 0.14), transparent 55%),
-    #0a0810;
+    radial-gradient(1200px 700px at 50% -15%, rgba(249, 88, 22, 0.22), transparent 60%),
+    radial-gradient(900px 600px at 100% 110%, rgba(139, 92, 246, 0.18), transparent 55%),
+    radial-gradient(700px 500px at -10% 40%, rgba(34, 184, 207, 0.1), transparent 60%),
+    #07060d;
   color: #f4f1f7;
 }
 
@@ -41,4 +43,95 @@ body {
   .tab-active {
     @apply text-papaya-400;
   }
+
+  /* Birincil buton: gradient + glow + dokunma tepkisi */
+  .btn-primary {
+    @apply rounded-2xl bg-gradient-to-br from-papaya-400 to-papaya-600 font-bold text-white shadow-glow transition;
+    @apply enabled:hover:brightness-110 enabled:active:scale-[0.97] disabled:opacity-40;
+  }
+  .btn-ghost {
+    @apply rounded-2xl border border-ink-600 bg-ink-800/60 font-semibold text-white/85 transition;
+    @apply hover:bg-ink-700 active:scale-[0.97];
+  }
+
+  /* Cam (glassmorphism) kart */
+  .glass {
+    @apply border border-white/10 bg-white/[0.04] backdrop-blur-xl;
+  }
+
+  /* Skeleton parıltısı */
+  .skeleton {
+    @apply relative overflow-hidden rounded-xl bg-ink-700/60;
+  }
+  .skeleton::after {
+    content: '';
+    @apply absolute inset-0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.07), transparent);
+    animation: shimmer 1.4s infinite;
+  }
+}
+
+/* Telefon çerçevesi içi dekoratif, yavaş süzülen ışıltılar */
+.aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.aurora::before,
+.aurora::after {
+  content: '';
+  position: absolute;
+  width: 60%;
+  height: 40%;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.5;
+}
+.aurora::before {
+  background: radial-gradient(circle, rgba(249, 88, 22, 0.55), transparent 70%);
+  top: -10%;
+  left: -10%;
+  animation: float1 14s ease-in-out infinite;
+}
+.aurora::after {
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.5), transparent 70%);
+  bottom: -10%;
+  right: -10%;
+  animation: float2 16s ease-in-out infinite;
+}
+
+@keyframes float1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(20%, 25%) scale(1.15); }
+}
+@keyframes float2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-18%, -22%) scale(1.2); }
+}
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+.floaty {
+  animation: floaty 3.6s ease-in-out infinite;
+}
+.text-gradient {
+  background: linear-gradient(120deg, #fb7a3c, #f95816 40%, #a78bfa);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Sayfa geçişi */
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.page-in {
+  animation: pageIn 0.28s ease-out;
 }

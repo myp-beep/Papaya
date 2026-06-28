@@ -26,20 +26,17 @@ export default function WelcomePage() {
       {step === 0 ? (
         /* Tanıtım */
         <div className="flex flex-1 flex-col items-center justify-center px-8 text-center animate-pop-in">
-          <div className="text-7xl">🍈</div>
-          <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-white">Papaya</h1>
-          <p className="mt-3 max-w-xs text-white/60">
-            Mesajlaş, oyna, keşfet — hepsi tek uygulamada. Hadi seni tanıyalım!
+          <div className="floaty text-8xl drop-shadow-[0_14px_36px_rgba(249,88,22,0.55)]">🍈</div>
+          <h1 className="text-gradient mt-5 text-5xl font-extrabold tracking-tight">Papaya</h1>
+          <p className="mt-3 max-w-xs leading-relaxed text-white/60">
+            Mesajlaş, oyna, keşfet — hepsi tek, canlı uygulamada. Hadi seni tanıyalım!
           </p>
-          <div className="mt-8 flex gap-4 text-center text-xs text-white/50">
-            <Feature emoji="💬" label="Sohbet" />
-            <Feature emoji="🎮" label="Oyun" />
+          <div className="mt-9 flex gap-3">
+            <Feature emoji="💬" label="Canlı sohbet" />
+            <Feature emoji="🎮" label="Çok oyunculu" />
             <Feature emoji="🧭" label="Keşfet" />
           </div>
-          <button
-            onClick={() => setStep(1)}
-            className="mt-10 w-full max-w-xs rounded-2xl bg-papaya-500 py-3.5 text-lg font-bold text-white shadow-glow transition hover:bg-papaya-400"
-          >
+          <button onClick={() => setStep(1)} className="btn-primary mt-10 w-full max-w-xs py-3.5 text-lg">
             Başla
           </button>
         </div>
@@ -93,10 +90,7 @@ export default function WelcomePage() {
           </div>
 
           <div className="mt-auto pb-10 pt-8">
-            <button
-              onClick={finish}
-              className="w-full rounded-2xl bg-papaya-500 py-3.5 text-lg font-bold text-white shadow-glow transition hover:bg-papaya-400"
-            >
+            <button onClick={finish} className="btn-primary w-full py-3.5 text-lg">
               Papaya’ya gir 🍈
             </button>
           </div>
@@ -108,7 +102,7 @@ export default function WelcomePage() {
 
 function Feature({ emoji, label }: { emoji: string; label: string }) {
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="glass flex w-24 flex-col items-center gap-1.5 rounded-2xl px-2 py-3 text-[11px] text-white/70">
       <span className="text-2xl">{emoji}</span>
       {label}
     </div>
