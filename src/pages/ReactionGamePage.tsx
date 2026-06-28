@@ -153,7 +153,7 @@ export default function ReactionGamePage() {
               )}
               <button
                 onClick={start}
-                className="mt-5 rounded-xl bg-papaya-500 px-6 py-2.5 font-semibold text-white shadow-glow transition hover:bg-papaya-400"
+                className="mt-5 btn-primary px-6 py-2.5"
               >
                 {phase === 'over' ? 'Tekrar oyna' : 'Başla'}
               </button>

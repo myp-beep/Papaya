@@ -210,7 +210,7 @@ export default function TicTacToePage() {
         <div className="mt-5 flex justify-center">
           <button
             onClick={reset}
-            className="rounded-xl bg-papaya-500 px-6 py-2.5 font-semibold text-white shadow-glow transition hover:bg-papaya-400"
+            className="btn-primary px-6 py-2.5"
           >
             Tekrar oyna
           </button>

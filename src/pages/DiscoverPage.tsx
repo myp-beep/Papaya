@@ -5,6 +5,7 @@ import { useFeed } from '../data/feedStore'
 import { useChat } from '../data/chatStore'
 import { resolveAuthor, useProfile } from '../data/profileStore'
 import { relativeTime } from '../utils/time'
+import { haptic } from '../lib/haptics'
 
 export default function DiscoverPage() {
   const { posts, toggleLike, addPost } = useFeed()
@@ -35,7 +36,7 @@ export default function DiscoverPage() {
       </header>
 
       {/* Gönderi oluştur */}
-      <form onSubmit={handlePost} className="mx-5 mt-2 rounded-2xl border border-ink-700 bg-ink-800 p-3">
+      <form onSubmit={handlePost} className="glass mx-5 mt-2 rounded-2xl p-3">
         <div className="flex gap-3">
           <Avatar emoji={profile.avatar} color={profile.color} size={40} />
           <textarea
@@ -49,11 +50,7 @@ export default function DiscoverPage() {
         </div>
         <div className="mt-2 flex items-center justify-between">
           <span className="text-xs text-white/30">{draft.length}/280</span>
-          <button
-            type="submit"
-            disabled={!draft.trim()}
-            className="rounded-full bg-papaya-500 px-4 py-1.5 text-sm font-bold text-white shadow-glow transition enabled:hover:bg-papaya-400 disabled:opacity-40"
-          >
+          <button type="submit" disabled={!draft.trim()} className="btn-primary rounded-full px-5 py-1.5 text-sm">
             Paylaş
           </button>
         </div>
@@ -64,7 +61,7 @@ export default function DiscoverPage() {
         {posts.map((p) => {
           const author = resolveAuthor(p.authorId, profile)
           return (
-            <article key={p.id} className="rounded-2xl border border-ink-700 bg-ink-800 p-4 shadow-card animate-slide-up">
+            <article key={p.id} className="glass rounded-2xl p-4 shadow-card animate-slide-up">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => openChatWith(p.authorId)}
@@ -86,12 +83,15 @@ export default function DiscoverPage() {
               <p className="mt-2 whitespace-pre-wrap break-words text-[15px] text-white/85">{p.text}</p>
               <div className="mt-3 flex items-center gap-4 text-sm">
                 <button
-                  onClick={() => toggleLike(p.id)}
-                  className={`flex items-center gap-1.5 rounded-full px-2 py-1 transition ${
+                  onClick={() => {
+                    toggleLike(p.id)
+                    haptic('light')
+                  }}
+                  className={`flex items-center gap-1.5 rounded-full px-2 py-1 transition active:scale-90 ${
                     p.likedByMe ? 'text-papaya-400' : 'text-white/45 hover:text-white/70'
                   }`}
                 >
-                  <span className={p.likedByMe ? 'scale-110 transition' : 'transition'}>
+                  <span className={`inline-block transition-transform ${p.likedByMe ? 'scale-125' : ''}`}>
                     {p.likedByMe ? '❤️' : '🤍'}
                   </span>
                   {p.likes}
