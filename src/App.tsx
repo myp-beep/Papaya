@@ -8,6 +8,7 @@ import NewChatPage from './pages/NewChatPage'
 import GamesPage from './pages/GamesPage'
 import MemoryGamePage from './pages/MemoryGamePage'
 import TicTacToePage from './pages/TicTacToePage'
+import ReactionGamePage from './pages/ReactionGamePage'
 import DiscoverPage from './pages/DiscoverPage'
 import ProfilePage from './pages/ProfilePage'
 
@@ -29,6 +30,7 @@ export default function App() {
             <Route path="games" element={<GamesPage />} />
             <Route path="games/memory" element={<MemoryGamePage />} />
             <Route path="games/tic" element={<TicTacToePage />} />
+            <Route path="games/reaction" element={<ReactionGamePage />} />
             <Route path="discover" element={<DiscoverPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
