@@ -128,6 +128,59 @@ export function Fireflies({ count = 60, area = 22 }: { count?: number; area?: nu
   )
 }
 
+function Bird({ phase, radius, height, speed }: { phase: number; radius: number; height: number; speed: number }) {
+  const ref = useRef<THREE.Group>(null)
+  const lw = useRef<THREE.Group>(null)
+  const rw = useRef<THREE.Group>(null)
+  useFrame((s) => {
+    const t = s.clock.elapsedTime * speed + phase
+    if (ref.current) {
+      ref.current.position.set(Math.cos(t) * radius, height + Math.sin(t * 2) * 0.5, Math.sin(t) * radius)
+      ref.current.rotation.y = -t
+    }
+    const flap = Math.sin(s.clock.elapsedTime * 9 + phase) * 0.7
+    if (lw.current) lw.current.rotation.z = flap
+    if (rw.current) rw.current.rotation.z = -flap
+  })
+  return (
+    <group ref={ref}>
+      <group ref={lw}>
+        <mesh position={[-0.3, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[0.6, 0.16]} />
+          <meshStandardMaterial color="#1c1c22" side={THREE.DoubleSide} />
+        </mesh>
+      </group>
+      <group ref={rw}>
+        <mesh position={[0.3, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[0.6, 0.16]} />
+          <meshStandardMaterial color="#1c1c22" side={THREE.DoubleSide} />
+        </mesh>
+      </group>
+    </group>
+  )
+}
+
+/** Gökyüzünde dönen kuş sürüsü. */
+export function Birds({ count = 7 }: { count?: number }) {
+  const birds = useMemo(
+    () =>
+      Array.from({ length: count }, (_, i) => ({
+        phase: (i / count) * Math.PI * 2 + Math.random(),
+        radius: 7 + Math.random() * 7,
+        height: 9 + Math.random() * 6,
+        speed: 0.12 + Math.random() * 0.1,
+      })),
+    [count],
+  )
+  return (
+    <group>
+      {birds.map((b, i) => (
+        <Bird key={i} {...b} />
+      ))}
+    </group>
+  )
+}
+
 /** Binlerce instanced çimen yaprağı (tek draw call) + hafif rüzgâr. */
 export function InstancedGrass({ count = 1400, radius = 13 }: { count?: number; radius?: number }) {
   const ref = useRef<THREE.InstancedMesh>(null)

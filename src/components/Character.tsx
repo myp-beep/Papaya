@@ -14,10 +14,13 @@ export type AnimState = 'Idle' | 'Walking' | 'Running' | 'Wave' | 'Dance' | 'Jum
  */
 export function Avatar3D({
   stateRef,
+  emoteRef,
   scale = 0.22,
   tint,
 }: {
   stateRef: React.MutableRefObject<AnimState>
+  /** Tek seferlik emote (Jump/Wave/Dance); bitince temizlenir. */
+  emoteRef?: React.MutableRefObject<AnimState | null>
   scale?: number
   tint?: string
 }) {
@@ -53,10 +56,25 @@ export function Avatar3D({
   }, [cloned, tint])
 
   useFrame(() => {
-    const want = stateRef.current
+    // emote öncelikli; bittiğinde temizle
+    if (emoteRef?.current) {
+      const a = actions[emoteRef.current]
+      if (current.current === emoteRef.current && a && !a.isRunning()) {
+        emoteRef.current = null
+      }
+    }
+    const want = emoteRef?.current ?? stateRef.current
     if (want !== current.current && actions[want]) {
-      actions[current.current]?.fadeOut(0.22)
-      actions[want]!.reset().fadeIn(0.22).play()
+      const a = actions[want]!
+      actions[current.current]?.fadeOut(0.18)
+      a.reset().fadeIn(0.18)
+      if (emoteRef?.current === want) {
+        a.setLoop(THREE.LoopOnce, 1)
+        a.clampWhenFinished = true
+      } else {
+        a.setLoop(THREE.LoopRepeat, Infinity)
+      }
+      a.play()
       current.current = want
     }
   })

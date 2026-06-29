@@ -7,7 +7,7 @@ import { useChat } from '../data/chatStore'
 import { useProfile } from '../data/profileStore'
 import { haptic } from '../lib/haptics'
 import Confetti from '../components/Confetti'
-import { Scenery, Fireflies, InstancedGrass } from '../components/Scenery'
+import { Scenery, Fireflies, InstancedGrass, Birds } from '../components/Scenery'
 import Effects from '../components/Effects'
 import { Avatar3D, type AnimState } from '../components/Character'
 import { tex } from '../lib/textures'
@@ -144,9 +144,10 @@ function Ground() {
   )
 }
 
-function NpcMesh({ npc }: { npc: NpcDef }) {
+function NpcMesh({ npc, talking }: { npc: NpcDef; talking?: boolean }) {
   const facing = useRef<THREE.Group>(null)
   const idle = useRef<AnimState>('Idle')
+  idle.current = talking ? 'Wave' : 'Idle'
   const { camera } = useThree()
   useFrame(() => {
     if (facing.current) {
@@ -267,6 +268,7 @@ interface LocalProps {
   stageRef: React.MutableRefObject<number>
   collectedRef: React.MutableRefObject<Set<number>>
   npcsRef: React.MutableRefObject<NpcDef[]>
+  emoteRef: React.MutableRefObject<AnimState | null>
   onCollect: (i: number) => void
   onOrb: () => void
   onPortal: () => void
@@ -274,7 +276,7 @@ interface LocalProps {
   sendPos: (x: number, z: number) => void
 }
 
-function LocalPlayer({ color, dirRef, stageRef, collectedRef, npcsRef, onCollect, onOrb, onPortal, onNpc, sendPos }: LocalProps) {
+function LocalPlayer({ color, dirRef, stageRef, collectedRef, npcsRef, emoteRef, onCollect, onOrb, onPortal, onNpc, sendPos }: LocalProps) {
   const ref = useRef<THREE.Group>(null)
   const pos = useRef(new THREE.Vector3(0, 0, -4))
   const { camera } = useThree()
@@ -338,7 +340,7 @@ function LocalPlayer({ color, dirRef, stageRef, collectedRef, npcsRef, onCollect
   return (
     <group ref={ref} position={[0, 0, -4]}>
       <Suspense fallback={<mesh position={[0, 0.5, 0]}><sphereGeometry args={[0.5, 16, 16]} /><meshStandardMaterial color={color} /></mesh>}>
-        <Avatar3D stateRef={animRef} />
+        <Avatar3D stateRef={animRef} emoteRef={emoteRef} />
       </Suspense>
     </group>
   )
@@ -363,7 +365,13 @@ export default function CoopQuestPage() {
   const collectedRef = useRef<Set<number>>(new Set())
   const remotesRef = useRef<Map<string, { id: string; x: number; z: number; color: string; last: number }>>(new Map())
   const dirRef = useRef<Vec>({ x: 0, z: 0 })
+  const emoteRef = useRef<AnimState | null>(null)
   const me = useMemo(() => ({ color: profile.color, name: profile.name }), [profile])
+
+  const emote = (a: AnimState) => {
+    emoteRef.current = a
+    haptic('select')
+  }
 
   // Aktif NPC listesi (Gölge Het yalnızca gölgeler diyarında)
   const activeNpcs = useMemo(() => (stage >= 4 ? [...NPCS, SHADOW] : NPCS), [stage])
@@ -526,19 +534,19 @@ export default function CoopQuestPage() {
         <directionalLight position={[8, 14, 6]} intensity={shadowRealm ? 0.8 : 1.5} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0005} />
         <pointLight position={[0, 5, 0]} intensity={shadowRealm ? 1.1 : 0.5} color={shadowRealm ? '#7c3aed' : '#f95816'} distance={30} />
         {shadowRealm && <fog attach="fog" args={['#120a22', 14, 40]} />}
-        {shadowRealm && <Fireflies />}
+        {shadowRealm ? <Fireflies /> : <Birds />}
         <Suspense fallback={null}>
           <Environment files={tex('sky.hdr')} background backgroundBlurriness={shadowRealm ? 0.55 : 0.04} environmentIntensity={shadowRealm ? 0.5 : 1} />
           <Ground />
           <InstancedGrass />
           <Scenery />
         </Suspense>
-        {activeNpcs.map((n) => <NpcMesh key={n.id} npc={n} />)}
+        {activeNpcs.map((n) => <NpcMesh key={n.id} npc={n} talking={dialogue?.npcId === n.id} />)}
         {stage === 1 && PAPAYAS.map((p, i) => (!collectedIds.includes(i) ? <Pickup key={i} p={p} /> : null))}
         {stage === 2 && <Orb />}
         {stage >= 3 && stage < 5 && <Portal />}
         <LocalPlayer
-          color={me.color} dirRef={dirRef} stageRef={stageRef} collectedRef={collectedRef} npcsRef={npcsRef}
+          color={me.color} dirRef={dirRef} stageRef={stageRef} collectedRef={collectedRef} npcsRef={npcsRef} emoteRef={emoteRef}
           onCollect={onCollect} onOrb={onOrb} onPortal={onPortal} onNpc={handleNpc} sendPos={sendPos}
         />
         {remotes.map((r) => <RemotePlayer key={r.id} r={r} />)}
@@ -566,6 +574,21 @@ export default function CoopQuestPage() {
       >
         <div className="absolute left-1/2 top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-papaya-500/70" />
       </div>
+
+      {/* Emote butonları */}
+      {!dialogue && !card && !victory && (
+        <div className="absolute bottom-9 right-6 z-10 flex flex-col gap-2">
+          {([['Wave', '👋'], ['Dance', '💃'], ['Jump', '🦘']] as [AnimState, string][]).map(([a, e]) => (
+            <button
+              key={a}
+              onClick={() => emote(a)}
+              className="glass flex h-12 w-12 items-center justify-center rounded-full text-2xl transition active:scale-90"
+            >
+              {e}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Diyalog paneli */}
       {dialogue && npc && (
