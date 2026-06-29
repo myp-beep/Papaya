@@ -7,6 +7,7 @@ import { useChat } from '../data/chatStore'
 import { useProfile } from '../data/profileStore'
 import { haptic } from '../lib/haptics'
 import Confetti from '../components/Confetti'
+import { SkyDome, Scenery, Fireflies } from '../components/Scenery'
 
 const BOUND = 11
 const SPEED = 6.5
@@ -74,10 +75,10 @@ function World() {
   return (
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[BOUND * 2, BOUND * 2]} />
-        <meshStandardMaterial color="#161226" />
+        <circleGeometry args={[BOUND + 3, 48]} />
+        <meshStandardMaterial color="#1d3a24" />
       </mesh>
-      <gridHelper args={[BOUND * 2, BOUND * 2, '#3a3357', '#241f33']} position={[0, 0.01, 0]} />
+      <gridHelper args={[BOUND * 2, BOUND * 2, '#3f6b46', '#244a30']} position={[0, 0.01, 0]} />
       {[[0, -BOUND], [0, BOUND], [-BOUND, 0], [BOUND, 0]].map(([x, z], i) => (
         <mesh key={i} position={[x, 0.6, z]}>
           <boxGeometry args={i < 2 ? [BOUND * 2, 1.2, 0.4] : [0.4, 1.2, BOUND * 2]} />
@@ -411,11 +412,14 @@ export default function CoopQuestPage() {
       )}
 
       <Canvas shadows camera={{ position: [0, 8, 10], fov: 55 }} className="flex-1">
-        <color attach="background" args={['#0a0810']} />
-        <fog attach="fog" args={['#0a0810', 14, 34]} />
-        <ambientLight intensity={0.55} />
-        <directionalLight position={[6, 12, 6]} intensity={1.1} castShadow />
-        <pointLight position={[0, 6, 0]} intensity={0.5} color="#f95816" />
+        <fog attach="fog" args={['#1a1030', 20, 46]} />
+        <hemisphereLight args={['#a78bfa', '#1d3a24', 0.7]} />
+        <ambientLight intensity={0.35} />
+        <directionalLight position={[8, 14, 6]} intensity={1.2} castShadow shadow-mapSize={[1024, 1024]} />
+        <pointLight position={[0, 5, 0]} intensity={0.6} color="#f95816" distance={30} />
+        <SkyDome />
+        <Fireflies />
+        <Scenery />
         <World />
         {NPCS.map((n) => <NpcMesh key={n.id} npc={n} />)}
         {stage === 1 && PAPAYAS.map((p, i) => (!collectedIds.includes(i) ? <Pickup key={i} p={p} /> : null))}
