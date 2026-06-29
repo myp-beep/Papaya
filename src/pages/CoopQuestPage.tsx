@@ -7,7 +7,8 @@ import { useChat } from '../data/chatStore'
 import { useProfile } from '../data/profileStore'
 import { haptic } from '../lib/haptics'
 import Confetti from '../components/Confetti'
-import { Scenery, Fireflies } from '../components/Scenery'
+import { Scenery, Fireflies, InstancedGrass } from '../components/Scenery'
+import Effects from '../components/Effects'
 import { tex } from '../lib/textures'
 
 const BOUND = 11
@@ -125,19 +126,19 @@ const dist = (a: Vec, b: Vec) => Math.hypot(a.x - b.x, a.z - b.z)
 
 // --- Gerçek dokulu çimen zemin ---
 function Ground() {
-  const [diff, nor] = useLoader(THREE.TextureLoader, [tex('grass_diff.jpg'), tex('grass_nor.jpg')])
+  const [diff, nor, rough] = useLoader(THREE.TextureLoader, [tex('grass_diff.jpg'), tex('grass_nor.jpg'), tex('grass_rough.jpg')])
   useMemo(() => {
     diff.colorSpace = THREE.SRGBColorSpace
-    ;[diff, nor].forEach((t) => {
+    ;[diff, nor, rough].forEach((t) => {
       t.wrapS = t.wrapT = THREE.RepeatWrapping
       t.repeat.set(8, 8)
       t.anisotropy = 8
     })
-  }, [diff, nor])
+  }, [diff, nor, rough])
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
       <circleGeometry args={[BOUND + 5, 64]} />
-      <meshStandardMaterial map={diff} normalMap={nor} roughness={1} />
+      <meshStandardMaterial map={diff} normalMap={nor} roughnessMap={rough} roughness={1} envMapIntensity={0.6} />
     </mesh>
   )
 }
@@ -494,6 +495,7 @@ export default function CoopQuestPage() {
         <Suspense fallback={null}>
           <Environment files={tex('sky.hdr')} background backgroundBlurriness={shadowRealm ? 0.55 : 0.04} environmentIntensity={shadowRealm ? 0.5 : 1} />
           <Ground />
+          <InstancedGrass />
           <Scenery />
         </Suspense>
         {activeNpcs.map((n) => <NpcMesh key={n.id} npc={n} />)}
@@ -505,6 +507,7 @@ export default function CoopQuestPage() {
           onCollect={onCollect} onOrb={onOrb} onPortal={onPortal} onNpc={handleNpc} sendPos={sendPos}
         />
         {remotes.map((r) => <RemotePlayer key={r.id} r={r} />)}
+        <Effects />
       </Canvas>
 
       {/* Konuş butonu */}

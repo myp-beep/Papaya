@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useFrame, useLoader } from '@react-three/fiber'
 import * as THREE from 'three'
 import { tex } from '../lib/textures'
@@ -125,6 +125,40 @@ export function Fireflies({ count = 60, area = 22 }: { count?: number; area?: nu
     <points ref={ref} geometry={geo}>
       <pointsMaterial color="#fcd34d" size={0.18} sizeAttenuation transparent opacity={0.85} />
     </points>
+  )
+}
+
+/** Binlerce instanced çimen yaprağı (tek draw call) + hafif rüzgâr. */
+export function InstancedGrass({ count = 1400, radius = 13 }: { count?: number; radius?: number }) {
+  const ref = useRef<THREE.InstancedMesh>(null)
+  const group = useRef<THREE.Group>(null)
+  useEffect(() => {
+    if (!ref.current) return
+    const dummy = new THREE.Object3D()
+    for (let i = 0; i < count; i++) {
+      const r = Math.sqrt(Math.random()) * radius
+      const a = Math.random() * Math.PI * 2
+      dummy.position.set(Math.cos(a) * r, 0.22, Math.sin(a) * r)
+      dummy.rotation.y = Math.random() * Math.PI
+      dummy.rotation.z = (Math.random() - 0.5) * 0.3
+      const h = 0.6 + Math.random() * 0.9
+      dummy.scale.set(1, h, 1)
+      dummy.updateMatrix()
+      ref.current.setMatrixAt(i, dummy.matrix)
+    }
+    ref.current.instanceMatrix.needsUpdate = true
+  }, [count, radius])
+  // birlikte salınan hafif rüzgâr
+  useFrame((s) => {
+    if (group.current) group.current.rotation.z = Math.sin(s.clock.elapsedTime * 1.2) * 0.025
+  })
+  return (
+    <group ref={group}>
+      <instancedMesh ref={ref} args={[undefined, undefined, count]} castShadow>
+        <coneGeometry args={[0.05, 0.5, 3]} />
+        <meshStandardMaterial color="#5a8f3c" roughness={0.9} />
+      </instancedMesh>
+    </group>
   )
 }
 
