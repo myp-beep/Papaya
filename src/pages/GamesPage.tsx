@@ -30,19 +30,22 @@ export default function GamesPage() {
         <p className="text-sm text-white/45">Arkadaşlarınla anlık oyna 🎮</p>
       </header>
 
-      {/* Öne çıkan oynanabilir oyun */}
+      {/* Öne çıkan: co-op hikâye macerası */}
       <button
-        onClick={() => go('/games/memory')}
-        className="relative mx-5 mt-2 flex items-center gap-4 overflow-hidden rounded-3xl border border-papaya-500/30 bg-gradient-to-br from-papaya-500/25 via-papaya-600/10 to-grape-500/20 p-5 text-left shadow-card transition active:scale-[0.98]"
+        onClick={() => go('/games/coop')}
+        className="relative mx-5 mt-2 flex items-center gap-4 overflow-hidden rounded-3xl border border-grape-500/40 bg-gradient-to-br from-grape-500/25 via-papaya-600/10 to-papaya-500/25 p-5 text-left shadow-card transition active:scale-[0.98]"
       >
-        <span className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-papaya-500/20 blur-2xl" />
-        <span className="floaty text-5xl drop-shadow-[0_8px_20px_rgba(249,88,22,0.5)]">🧠</span>
+        <span className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-grape-500/25 blur-2xl" />
+        <span className="floaty text-5xl drop-shadow-[0_8px_20px_rgba(139,92,246,0.5)]">🏰</span>
         <div className="relative flex-1">
-          <div className="text-lg font-bold text-white">Hafıza Eşleştirme</div>
-          <p className="text-sm text-white/60">Çiftleri en kısa sürede bul. Hemen oyna!</p>
+          <div className="flex items-center gap-2 text-lg font-bold text-white">
+            Papaya Krallığı
+            <span className="rounded-full bg-grape-500/30 px-2 py-0.5 text-[10px] font-bold uppercase text-grape-300">Yeni · Co-op</span>
+          </div>
+          <p className="text-sm text-white/60">Hikâyeli 3B macera. NPC'ler, görevler, birlikte oyna!</p>
         </div>
-        <span className="relative rounded-full bg-gradient-to-br from-papaya-400 to-papaya-600 px-4 py-1.5 text-sm font-bold text-white shadow-glow">
-          Oyna
+        <span className="relative rounded-full bg-gradient-to-br from-grape-400 to-grape-600 px-4 py-1.5 text-sm font-bold text-white shadow-glow">
+          Başla
         </span>
       </button>
 

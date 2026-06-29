@@ -16,8 +16,9 @@ import DiscoverPage from './pages/DiscoverPage'
 import ProfilePage from './pages/ProfilePage'
 import GameInviteListener from './components/GameInviteListener'
 
-// 3D oyun ağır (three.js) — yalnızca girince yüklensin
+// 3D oyunlar ağır (three.js) — yalnızca girince yüklensin
 const ArenaPage = lazy(() => import('./pages/ArenaPage'))
+const CoopQuestPage = lazy(() => import('./pages/CoopQuestPage'))
 
 export default function App() {
   const { onboarded } = useProfile()
@@ -67,6 +68,15 @@ export default function App() {
             element={
               <Suspense fallback={<div className="flex h-full items-center justify-center text-5xl animate-pop-in">🍈</div>}>
                 <ArenaPage />
+              </Suspense>
+            }
+          />
+          {/* Co-op hikâye macerası (3D) */}
+          <Route
+            path="games/coop"
+            element={
+              <Suspense fallback={<div className="flex h-full items-center justify-center text-5xl animate-pop-in">🍈</div>}>
+                <CoopQuestPage />
               </Suspense>
             }
           />
