@@ -9,6 +9,7 @@ import { haptic } from '../lib/haptics'
 import Confetti from '../components/Confetti'
 import { Scenery, Fireflies, InstancedGrass } from '../components/Scenery'
 import Effects from '../components/Effects'
+import { Avatar3D, type AnimState } from '../components/Character'
 import { tex } from '../lib/textures'
 
 const BOUND = 11
@@ -223,18 +224,28 @@ function Portal() {
 
 function RemotePlayer({ r }: { r: { x: number; z: number; color: string } }) {
   const ref = useRef<THREE.Group>(null)
+  const animRef = useRef<AnimState>('Idle')
   useFrame(() => {
-    if (ref.current) {
-      ref.current.position.x += (r.x - ref.current.position.x) * 0.2
-      ref.current.position.z += (r.z - ref.current.position.z) * 0.2
+    const g = ref.current
+    if (!g) return
+    const nx = g.position.x + (r.x - g.position.x) * 0.2
+    const nz = g.position.z + (r.z - g.position.z) * 0.2
+    const dx = nx - g.position.x
+    const dz = nz - g.position.z
+    g.position.x = nx
+    g.position.z = nz
+    if (Math.hypot(dx, dz) > 0.004) {
+      g.rotation.y = Math.atan2(dx, dz)
+      animRef.current = 'Walking'
+    } else {
+      animRef.current = 'Idle'
     }
   })
   return (
-    <group ref={ref} position={[r.x, 0.5, r.z]}>
-      <mesh castShadow>
-        <sphereGeometry args={[0.5, 24, 24]} />
-        <meshStandardMaterial color={r.color} emissive={r.color} emissiveIntensity={0.3} />
-      </mesh>
+    <group ref={ref} position={[r.x, 0, r.z]}>
+      <Suspense fallback={<mesh position={[0, 0.5, 0]}><sphereGeometry args={[0.5, 16, 16]} /><meshStandardMaterial color={r.color} /></mesh>}>
+        <Avatar3D stateRef={animRef} />
+      </Suspense>
     </group>
   )
 }
@@ -253,24 +264,36 @@ interface LocalProps {
 }
 
 function LocalPlayer({ color, dirRef, stageRef, collectedRef, npcsRef, onCollect, onOrb, onPortal, onNpc, sendPos }: LocalProps) {
-  const ref = useRef<THREE.Mesh>(null)
-  const pos = useRef(new THREE.Vector3(0, 0.5, -4))
+  const ref = useRef<THREE.Group>(null)
+  const pos = useRef(new THREE.Vector3(0, 0, -4))
   const { camera } = useThree()
   const lastSent = useRef(0)
   const nearNpc = useRef<string | null>(null)
+  const animRef = useRef<AnimState>('Idle')
 
   useFrame((_, delta) => {
     const d = dirRef.current
-    const moving = d.x || d.z
+    const moving = !!(d.x || d.z)
     const len = Math.hypot(d.x, d.z) || 1
     if (moving) {
       pos.current.x = THREE.MathUtils.clamp(pos.current.x + (d.x / len) * SPEED * delta, -BOUND + 0.6, BOUND - 0.6)
       pos.current.z = THREE.MathUtils.clamp(pos.current.z + (d.z / len) * SPEED * delta, -BOUND + 0.6, BOUND - 0.6)
     }
-    if (ref.current) ref.current.position.copy(pos.current)
+    const g = ref.current
+    if (g) {
+      g.position.copy(pos.current)
+      if (moving) {
+        // yöne dön (en kısa yoldan)
+        const target = Math.atan2(d.x, d.z)
+        let diff = target - g.rotation.y
+        diff = Math.atan2(Math.sin(diff), Math.cos(diff))
+        g.rotation.y += diff * Math.min(1, delta * 10)
+      }
+    }
+    animRef.current = moving ? (len > 0.85 ? 'Running' : 'Walking') : 'Idle'
 
     camera.position.lerp(new THREE.Vector3(pos.current.x, 8, pos.current.z + 10), 0.08)
-    camera.lookAt(pos.current.x, 0.5, pos.current.z)
+    camera.lookAt(pos.current.x, 1, pos.current.z)
 
     const me: Vec = { x: pos.current.x, z: pos.current.z }
     const stage = stageRef.current
@@ -302,10 +325,11 @@ function LocalPlayer({ color, dirRef, stageRef, collectedRef, npcsRef, onCollect
   })
 
   return (
-    <mesh ref={ref} position={[0, 0.5, -4]} castShadow>
-      <sphereGeometry args={[0.5, 24, 24]} />
-      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.4} />
-    </mesh>
+    <group ref={ref} position={[0, 0, -4]}>
+      <Suspense fallback={<mesh position={[0, 0.5, 0]}><sphereGeometry args={[0.5, 16, 16]} /><meshStandardMaterial color={color} /></mesh>}>
+        <Avatar3D stateRef={animRef} />
+      </Suspense>
+    </group>
   )
 }
 
