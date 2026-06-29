@@ -13,6 +13,7 @@ const GAMES: GameItem[] = [
   { emoji: '⭕', name: 'XOX', desc: 'Bota karşı', to: '/games/tic' },
   { emoji: '🎯', name: 'Hızlı Dokun', desc: 'Reaksiyon', to: '/games/reaction' },
   { emoji: '🔢', name: '2048', desc: 'Birleştir', to: '/games/2048' },
+  { emoji: '🌐', name: '3D Arena', desc: 'Canlı 3B', to: '/games/arena' },
 ]
 
 export default function GamesPage() {

@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import AppShell from './components/AppShell'
 import WelcomePage from './pages/WelcomePage'
@@ -14,6 +15,9 @@ import OnlineTicPage from './pages/OnlineTicPage'
 import DiscoverPage from './pages/DiscoverPage'
 import ProfilePage from './pages/ProfilePage'
 import GameInviteListener from './components/GameInviteListener'
+
+// 3D oyun ağır (three.js) — yalnızca girince yüklensin
+const ArenaPage = lazy(() => import('./pages/ArenaPage'))
 
 export default function App() {
   const { onboarded } = useProfile()
@@ -57,6 +61,15 @@ export default function App() {
           <Route path="chat/:id" element={<ChatRoomPage />} />
           {/* Canlı çok oyunculu XOX */}
           <Route path="play/tic/:gameId" element={<OnlineTicPage />} />
+          {/* 3D çok oyunculu arena */}
+          <Route
+            path="games/arena"
+            element={
+              <Suspense fallback={<div className="flex h-full items-center justify-center text-5xl animate-pop-in">🍈</div>}>
+                <ArenaPage />
+              </Suspense>
+            }
+          />
         </Routes>
         {/* Uygulama genelinde gelen oyun davetleri */}
         <GameInviteListener />
