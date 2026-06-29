@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { Html } from '@react-three/drei'
+import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber'
+import { Html, Environment } from '@react-three/drei'
 import * as THREE from 'three'
 import { useChat } from '../data/chatStore'
 import { useProfile } from '../data/profileStore'
 import { haptic } from '../lib/haptics'
 import Confetti from '../components/Confetti'
-import { SkyDome, Scenery, Fireflies } from '../components/Scenery'
+import { Scenery, Fireflies } from '../components/Scenery'
+import { tex } from '../lib/textures'
 
 const BOUND = 11
 const SPEED = 6.5
@@ -122,22 +123,22 @@ function objectiveText(stage: number, collected: number): string {
 
 const dist = (a: Vec, b: Vec) => Math.hypot(a.x - b.x, a.z - b.z)
 
-// --- Sahne parçaları ---
-function World() {
+// --- Gerçek dokulu çimen zemin ---
+function Ground() {
+  const [diff, nor] = useLoader(THREE.TextureLoader, [tex('grass_diff.jpg'), tex('grass_nor.jpg')])
+  useMemo(() => {
+    diff.colorSpace = THREE.SRGBColorSpace
+    ;[diff, nor].forEach((t) => {
+      t.wrapS = t.wrapT = THREE.RepeatWrapping
+      t.repeat.set(8, 8)
+      t.anisotropy = 8
+    })
+  }, [diff, nor])
   return (
-    <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <circleGeometry args={[BOUND + 3, 48]} />
-        <meshStandardMaterial color="#1d3a24" />
-      </mesh>
-      <gridHelper args={[BOUND * 2, BOUND * 2, '#3f6b46', '#244a30']} position={[0, 0.01, 0]} />
-      {[[0, -BOUND], [0, BOUND], [-BOUND, 0], [BOUND, 0]].map(([x, z], i) => (
-        <mesh key={i} position={[x, 0.6, z]}>
-          <boxGeometry args={i < 2 ? [BOUND * 2, 1.2, 0.4] : [0.4, 1.2, BOUND * 2]} />
-          <meshStandardMaterial color="#2a2540" transparent opacity={0.6} />
-        </mesh>
-      ))}
-    </group>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <circleGeometry args={[BOUND + 5, 64]} />
+      <meshStandardMaterial map={diff} normalMap={nor} roughness={1} />
+    </mesh>
   )
 }
 
@@ -485,15 +486,16 @@ export default function CoopQuestPage() {
       )}
 
       <Canvas shadows camera={{ position: [0, 8, 10], fov: 55 }} className="flex-1">
-        <fog attach="fog" args={[shadowRealm ? '#120a22' : '#1a1030', shadowRealm ? 14 : 20, shadowRealm ? 38 : 46]} />
-        <hemisphereLight args={[shadowRealm ? '#6d28d9' : '#a78bfa', '#1d3a24', shadowRealm ? 0.4 : 0.7]} />
-        <ambientLight intensity={shadowRealm ? 0.25 : 0.35} />
-        <directionalLight position={[8, 14, 6]} intensity={shadowRealm ? 0.7 : 1.2} castShadow shadow-mapSize={[1024, 1024]} />
-        <pointLight position={[0, 5, 0]} intensity={shadowRealm ? 0.9 : 0.6} color={shadowRealm ? '#7c3aed' : '#f95816'} distance={30} />
-        <SkyDome />
-        <Fireflies />
-        <Scenery />
-        <World />
+        <ambientLight intensity={shadowRealm ? 0.2 : 0.35} />
+        <directionalLight position={[8, 14, 6]} intensity={shadowRealm ? 0.8 : 1.5} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0005} />
+        <pointLight position={[0, 5, 0]} intensity={shadowRealm ? 1.1 : 0.5} color={shadowRealm ? '#7c3aed' : '#f95816'} distance={30} />
+        {shadowRealm && <fog attach="fog" args={['#120a22', 14, 40]} />}
+        {shadowRealm && <Fireflies />}
+        <Suspense fallback={null}>
+          <Environment files={tex('sky.hdr')} background backgroundBlurriness={shadowRealm ? 0.55 : 0.04} environmentIntensity={shadowRealm ? 0.5 : 1} />
+          <Ground />
+          <Scenery />
+        </Suspense>
         {activeNpcs.map((n) => <NpcMesh key={n.id} npc={n} />)}
         {stage === 1 && PAPAYAS.map((p, i) => (!collectedIds.includes(i) ? <Pickup key={i} p={p} /> : null))}
         {stage === 2 && <Orb />}

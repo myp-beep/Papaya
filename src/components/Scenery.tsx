@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useLoader } from '@react-three/fiber'
 import * as THREE from 'three'
+import { tex } from '../lib/textures'
 
 /** Dikey gradient gökyüzü kubbesi (dış yüz). */
 export function SkyDome() {
@@ -34,14 +35,20 @@ export function SkyDome() {
 
 function Tree({ x, z, s = 1 }: { x: number; z: number; s?: number }) {
   const top = useRef<THREE.Group>(null)
+  const bark = useLoader(THREE.TextureLoader, tex('bark_diff.jpg'))
+  useMemo(() => {
+    bark.colorSpace = THREE.SRGBColorSpace
+    bark.wrapS = bark.wrapT = THREE.RepeatWrapping
+    bark.repeat.set(1, 2)
+  }, [bark])
   useFrame((st) => {
     if (top.current) top.current.rotation.z = Math.sin(st.clock.elapsedTime * 0.8 + x) * 0.04
   })
   return (
     <group position={[x, 0, z]} scale={s}>
       <mesh position={[0, 0.9, 0]} castShadow>
-        <cylinderGeometry args={[0.22, 0.32, 1.8, 8]} />
-        <meshStandardMaterial color="#5b3a21" />
+        <cylinderGeometry args={[0.22, 0.32, 1.8, 12]} />
+        <meshStandardMaterial map={bark} roughness={0.95} />
       </mesh>
       <group ref={top} position={[0, 1.9, 0]}>
         <mesh castShadow>
@@ -67,10 +74,14 @@ function Tree({ x, z, s = 1 }: { x: number; z: number; s?: number }) {
 }
 
 function Rock({ x, z, s = 1 }: { x: number; z: number; s?: number }) {
+  const rock = useLoader(THREE.TextureLoader, tex('rock_diff.jpg'))
+  useMemo(() => {
+    rock.colorSpace = THREE.SRGBColorSpace
+  }, [rock])
   return (
     <mesh position={[x, 0.3 * s, z]} scale={s} rotation={[0.3, x, 0.2]} castShadow>
       <dodecahedronGeometry args={[0.5, 0]} />
-      <meshStandardMaterial color="#4a4458" flatShading />
+      <meshStandardMaterial map={rock} roughness={1} flatShading />
     </mesh>
   )
 }
