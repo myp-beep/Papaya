@@ -12,7 +12,15 @@ export type AnimState = 'Idle' | 'Walking' | 'Running' | 'Wave' | 'Dance' | 'Jum
  * Animasyonlu 3D karakter. `stateRef` ile dışarıdan animasyon durumu sürülür
  * (her örnek bağımsız iskelet klonu + kendi mixer'ı).
  */
-export function Avatar3D({ stateRef, scale = 0.22 }: { stateRef: React.MutableRefObject<AnimState>; scale?: number }) {
+export function Avatar3D({
+  stateRef,
+  scale = 0.22,
+  tint,
+}: {
+  stateRef: React.MutableRefObject<AnimState>
+  scale?: number
+  tint?: string
+}) {
   const { scene, animations } = useGLTF(MODEL)
   const cloned = useMemo(() => cloneSkeleton(scene), [scene])
   const ref = useRef<THREE.Group>(null)
@@ -20,14 +28,29 @@ export function Avatar3D({ stateRef, scale = 0.22 }: { stateRef: React.MutableRe
   const current = useRef<string>('')
 
   useEffect(() => {
-    // gölge dökme
     cloned.traverse((o) => {
-      if ((o as THREE.Mesh).isMesh) {
-        o.castShadow = true
-        o.receiveShadow = true
+      const mesh = o as THREE.Mesh
+      if (mesh.isMesh) {
+        mesh.castShadow = true
+        mesh.receiveShadow = true
+        if (tint) {
+          // materyali klonla ve renklendir (diğer örnekleri etkilemeden)
+          const recolor = (m: THREE.Material) => {
+            const c = m.clone() as THREE.MeshStandardMaterial
+            if (c.color) c.color.set(tint)
+            if (c.emissive) {
+              c.emissive.set(tint)
+              c.emissiveIntensity = 0.15
+            }
+            return c
+          }
+          mesh.material = Array.isArray(mesh.material)
+            ? mesh.material.map(recolor)
+            : recolor(mesh.material)
+        }
       }
     })
-  }, [cloned])
+  }, [cloned, tint])
 
   useFrame(() => {
     const want = stateRef.current

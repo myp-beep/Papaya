@@ -145,23 +145,34 @@ function Ground() {
 }
 
 function NpcMesh({ npc }: { npc: NpcDef }) {
-  const ref = useRef<THREE.Group>(null)
-  useFrame((s) => {
-    if (ref.current) ref.current.position.y = Math.sin(s.clock.elapsedTime * 1.5) * 0.08
+  const facing = useRef<THREE.Group>(null)
+  const idle = useRef<AnimState>('Idle')
+  const { camera } = useThree()
+  useFrame(() => {
+    if (facing.current) {
+      // oyuncuya (kameraya) dön
+      facing.current.rotation.y = Math.atan2(camera.position.x - npc.x, camera.position.z - npc.z)
+    }
   })
   return (
     <group position={[npc.x, 0, npc.z]}>
-      <group ref={ref}>
-        <mesh position={[0, 0.9, 0]} castShadow>
-          <capsuleGeometry args={[0.45, 0.7, 8, 16]} />
-          <meshStandardMaterial color={npc.color} emissive={npc.color} emissiveIntensity={0.3} />
-        </mesh>
-        <Html position={[0, 2.1, 0]} center distanceFactor={12} pointerEvents="none">
-          <div className="whitespace-nowrap rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur">
-            {npc.emoji} {npc.name}
-          </div>
-        </Html>
+      <group ref={facing}>
+        <Suspense
+          fallback={
+            <mesh position={[0, 0.9, 0]}>
+              <capsuleGeometry args={[0.4, 0.7, 6, 12]} />
+              <meshStandardMaterial color={npc.color} />
+            </mesh>
+          }
+        >
+          <Avatar3D stateRef={idle} tint={npc.color} />
+        </Suspense>
       </group>
+      <Html position={[0, 2, 0]} center distanceFactor={12} pointerEvents="none">
+        <div className="whitespace-nowrap rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur">
+          {npc.emoji} {npc.name}
+        </div>
+      </Html>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
         <ringGeometry args={[1.1, 1.3, 32]} />
         <meshBasicMaterial color={npc.color} transparent opacity={0.5} />
