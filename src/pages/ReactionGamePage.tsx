@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Confetti from '../components/Confetti'
+import { haptic } from '../lib/haptics'
 
 const GRID = 9 // 3x3
 const ROUND_SEC = 20
@@ -79,6 +81,7 @@ export default function ReactionGamePage() {
 
   const hit = (index: number) => {
     if (phase !== 'playing' || index !== target) return
+    haptic('light')
     setScore((s) => {
       const ns = s + 1
       // hemen yeni konuma taşı ve hızı güncelle
@@ -90,8 +93,11 @@ export default function ReactionGamePage() {
     })
   }
 
+  const isRecord = phase === 'over' && score > 0 && score >= best
+
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="relative flex flex-1 flex-col">
+      <Confetti show={isRecord} />
       <header className="flex items-center gap-2 px-4 pb-2 pt-5">
         <button
           onClick={() => navigate('/games')}

@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Confetti from '../components/Confetti'
+import { haptic } from '../lib/haptics'
 
 type Cell = 'X' | 'O' | null
+type Difficulty = 'kolay' | 'orta' | 'imkansiz'
 const SCORE_KEY = 'papaya.tic.score.v1'
+const DIFF_KEY = 'papaya.tic.diff.v1'
+
+const DIFF_LABEL: Record<Difficulty, string> = { kolay: 'Kolay', orta: 'Orta', imkansiz: 'İmkansız' }
 
 const LINES = [
   [0, 1, 2], [3, 4, 5], [6, 7, 8], // satırlar
@@ -64,6 +70,18 @@ function minimax(board: Cell[], maximizing: boolean): number {
   }
 }
 
+function randomMove(board: Cell[]): number {
+  const empty = board.map((c, i) => (c === null ? i : -1)).filter((i) => i >= 0)
+  return empty.length ? empty[Math.floor(Math.random() * empty.length)] : -1
+}
+
+/** Zorluğa göre bot hamlesi. */
+function chooseMove(board: Cell[], diff: Difficulty): number {
+  if (diff === 'kolay') return randomMove(board)
+  if (diff === 'orta') return Math.random() < 0.55 ? bestMove(board) : randomMove(board)
+  return bestMove(board)
+}
+
 interface Score {
   win: number
   loss: number
@@ -85,6 +103,9 @@ export default function TicTacToePage() {
   const [board, setBoard] = useState<Cell[]>(() => Array(9).fill(null))
   const [botThinking, setBotThinking] = useState(false)
   const [score, setScore] = useState<Score>(loadScore)
+  const [diff, setDiff] = useState<Difficulty>(
+    () => (localStorage.getItem(DIFF_KEY) as Difficulty) || 'orta',
+  )
 
   const winner = getWinner(board)
   const full = board.every((c) => c !== null)
@@ -103,10 +124,16 @@ export default function TicTacToePage() {
   useEffect(() => {
     if (!over || recorded) return
     setRecorded(true)
-    if (winner?.player === 'X') setScore((s) => ({ ...s, win: s.win + 1 }))
-    else if (winner?.player === 'O') setScore((s) => ({ ...s, loss: s.loss + 1 }))
+    if (winner?.player === 'X') {
+      setScore((s) => ({ ...s, win: s.win + 1 }))
+      haptic('success')
+    } else if (winner?.player === 'O') setScore((s) => ({ ...s, loss: s.loss + 1 }))
     else setScore((s) => ({ ...s, draw: s.draw + 1 }))
   }, [over, recorded, winner])
+
+  useEffect(() => {
+    localStorage.setItem(DIFF_KEY, diff)
+  }, [diff])
 
   const reset = useCallback(() => {
     setBoard(Array(9).fill(null))
@@ -120,6 +147,7 @@ export default function TicTacToePage() {
       const afterPlayer = board.slice()
       afterPlayer[index] = 'X'
       setBoard(afterPlayer)
+      haptic('light')
 
       // Oyuncu hamlesi oyunu bitirdiyse bot oynamaz
       if (getWinner(afterPlayer) || afterPlayer.every((c) => c !== null)) return
@@ -127,18 +155,18 @@ export default function TicTacToePage() {
       setBotThinking(true)
       window.setTimeout(() => {
         setBoard((current) => {
-          // güncel tahtaya göre bot hamlesi
+          // güncel tahtaya göre bot hamlesi (zorluğa bağlı)
           if (getWinner(current) || current.every((c) => c !== null)) return current
-          const move = bestMove(current)
+          const move = chooseMove(current, diff)
           if (move === -1) return current
           const next = current.slice()
           next[move] = 'O'
           return next
         })
         setBotThinking(false)
-      }, 450)
+      }, 420)
     },
-    [board, over, botThinking],
+    [board, over, botThinking, diff],
   )
 
   const statusText = winner
@@ -152,7 +180,8 @@ export default function TicTacToePage() {
         : 'Senin sıran (X)'
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="relative flex flex-1 flex-col">
+      <Confetti show={winner?.player === 'X'} />
       <header className="flex items-center gap-2 px-4 pb-2 pt-5">
         <button
           onClick={() => navigate('/games')}
@@ -178,6 +207,24 @@ export default function TicTacToePage() {
         <Stat label="Galibiyet" value={String(score.win)} tone="text-emerald-400" />
         <Stat label="Beraberlik" value={String(score.draw)} tone="text-white" />
         <Stat label="Mağlubiyet" value={String(score.loss)} tone="text-papaya-400" />
+      </div>
+
+      {/* Zorluk seçici */}
+      <div className="mx-4 mb-3 flex gap-1 rounded-xl border border-ink-700 bg-ink-800 p-1">
+        {(['kolay', 'orta', 'imkansiz'] as Difficulty[]).map((d) => (
+          <button
+            key={d}
+            onClick={() => {
+              setDiff(d)
+              reset()
+            }}
+            className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition ${
+              diff === d ? 'bg-gradient-to-br from-papaya-400 to-papaya-600 text-white shadow-glow' : 'text-white/55 hover:text-white/80'
+            }`}
+          >
+            {DIFF_LABEL[d]}
+          </button>
+        ))}
       </div>
 
       {/* Durum */}

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Confetti from '../components/Confetti'
+import { haptic } from '../lib/haptics'
 
 const EMOJIS = ['🍈', '🦊', '🐼', '🐙', '🦄', '🎮', '🔥', '🍓']
 const PAIRS = EMOJIS.length // 8 çift = 16 kart
@@ -91,7 +93,7 @@ export default function MemoryGamePage() {
         if (cards[a].emoji === cards[b].emoji) {
           // Eşleşti
           setCards((prev) => prev.map((c, i) => (i === a || i === b ? { ...c, matched: true } : c)))
-          setMatched((n) => n + 1)
+          setMatched((n) => (n + 1 === PAIRS ? (haptic('success'), n + 1) : (haptic('light'), n + 1)))
           setFlipped([])
         } else {
           // Eşleşmedi: kısa süre göster, sonra kapat
@@ -109,7 +111,8 @@ export default function MemoryGamePage() {
   const timeLabel = useMemo(() => formatTime(elapsed), [elapsed])
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="relative flex flex-1 flex-col">
+      <Confetti show={won} />
       {/* Başlık */}
       <header className="flex items-center gap-2 px-4 pb-2 pt-5">
         <button
