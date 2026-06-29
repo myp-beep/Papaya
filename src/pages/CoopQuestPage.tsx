@@ -20,11 +20,27 @@ const NPCS: NpcDef[] = [
   { id: 'elder', name: 'Bilge Pofu', emoji: '🧙', color: '#8b5cf6', x: 0, z: -8 },
   { id: 'guardian', name: 'Bekçi Karpuz', emoji: '🛡️', color: '#22b8cf', x: 8, z: 6 },
 ]
+const SHADOW: NpcDef = { id: 'shadow', name: 'Gölge Het', emoji: '🌑', color: '#6d28d9', x: 0, z: 7 }
 const PAPAYAS: Vec[] = [
   { x: -7, z: -5 }, { x: 7, z: -6 }, { x: -8, z: 5 }, { x: 4, z: 2 }, { x: -2, z: 8 },
 ]
 const ORB: Vec = { x: -8, z: -1 }
 const PORTAL: Vec = { x: 0, z: 9 }
+
+// --- Bölümler (hikâye perdeleri) ---
+interface Chapter { n: number; title: string; text: string }
+const CHAPTERS: Record<number, Chapter> = {
+  1: { n: 1, title: 'Solan Krallık', text: 'Papaya Krallığı’nın kalbindeki Büyük Papaya’nın ışığı sönmeye başladı. Karanlık çökerken, son umut bir yolcuya kaldı...' },
+  2: { n: 2, title: 'Işık Taşı', text: 'Beş sihirli papayanın ışığı toplandı. Şimdi kadim Işık Taşı uyanacak ve gölgeler diyarına açılan kapı belirecek.' },
+  3: { n: 3, title: 'Gölgeler Diyarı', text: 'Portalın ötesinde, krallığı karanlığa boğan gücün gerçek yüzü bekliyor. Ama her gölgenin ardında bir hikâye vardır.' },
+  4: { n: 4, title: 'Şafak', text: 'Gerçek anlaşıldı, kırgınlık iyileşti. Papaya Krallığı yeniden ışıkla doğuyor.' },
+}
+export function chapterOf(stage: number): number {
+  if (stage <= 1) return 1
+  if (stage <= 3) return 2
+  if (stage <= 5) return 3
+  return 4
+}
 
 // --- Hikâye diyalogları ---
 function dialogueFor(npcId: string, stage: number, collected: number): { lines: string[]; action?: number } {
@@ -32,28 +48,62 @@ function dialogueFor(npcId: string, stage: number, collected: number): { lines: 
     if (stage === 0)
       return {
         lines: [
-          'Hoş geldin yolcu... Papaya Krallığı büyük tehlikede. 🍈',
-          'Karanlık, krallığın 5 sihirli papayasını çaldı ve diyara saçtı!',
-          'Onları toplaman gerek. Bir arkadaşınla birlikte çok daha hızlı olursunuz.',
-          'Haydi! Papayaları bul, sonra Bekçi Karpuz’a git.',
+          'Sonunda geldin yolcu... Seni rüyalarımda gördüm. 🌙',
+          'Ben Bilge Pofu, bu krallığın son hafızasıyım.',
+          'Bir zamanlar göğümüzde Büyük Papaya parlardı; ışığı herkesi ısıtırdı.',
+          'Ama bir gece o ışık söndü. Karanlık, koruyucu beş sihirli papayayı söküp diyara savurdu.',
+          'O ışıklar olmadan krallık yavaşça soluyor... ve ben de onunla.',
+          'Beş papayayı topla. Sonra Doğu’nun Bekçisi Karpuz’a git — gerisini o anlatacak.',
+          'Yalnız değilsin: bir dostunla birlikte daha güçlüsünüz. Haydi, umut sende.',
         ],
         action: 1,
       }
-    return { lines: ['Cesaretin krallığa umut oldu yolcu. Görevine devam et!'] }
+    if (stage === 1) return { lines: ['Papayaların ışığı seni çağırıyor... onları topla, yolcu.'] }
+    return { lines: ['Sen geldin geleli kalbimde unuttuğum bir his var: umut.'] }
   }
+
   if (npcId === 'guardian') {
-    if (stage < 1) return { lines: ['Önce Bilge Pofu ile konuşmalısın.'] }
-    if (collected < NEED) return { lines: [`Henüz ${collected}/${NEED} papaya topladın. Hepsini getir, sonra konuşalım.`] }
-    if (stage < 2)
+    if (stage < 1) return { lines: ['Önce Bilge Pofu ile konuş; bu yol oradan başlar.'] }
+    if (stage === 1 && collected < NEED)
+      return { lines: [`Dur bakalım yolcu. Henüz ${collected}/${NEED} papaya topladın.`, 'Hepsinin ışığı olmadan Taş uyanmaz. Geri kalanları bul.'] }
+    if (stage === 1)
       return {
         lines: [
-          'Muhteşem! 5 sihirli papayayı da topladın. 🎉',
-          'Şimdi krallığın kapısını açma vakti.',
-          'Şu parlayan Işık Taşı’na dokunun — portal belirecek!',
+          'Demek beş ışığı da topladın... Cesursun, bunu kabul ediyorum.',
+          'Sana bir sır vereyim: Karanlık dışarıdan gelmedi. İçimizden biriydi.',
+          'Yıllar önce iki kardeş koruyordu bu krallığı: Pofu ve... Het.',
+          'Şu kadim Işık Taşı’na beş papayayı götür. Dokun ona — kapı açılacak.',
+          'Ötesinde seni bekleyenle yüzleşmeye hazır ol. Yüreğini de yanına al.',
         ],
         action: 2,
       }
-    return { lines: ['Portal açıldı! Birlikte içinden geçin ve krallığı kurtarın!'] }
+    return { lines: ['Işık seninle yolcu. Korkma; gölgenin ardına bak.'] }
+  }
+
+  if (npcId === 'shadow') {
+    if (stage === 4)
+      return {
+        lines: [
+          '...Demek geldin. Beş ışığı da taşıyorsun. 🌑',
+          'Ben Het. Bir zamanlar bu krallığı kardeşim Pofu ile korurdum.',
+          'Büyük Papaya sönmeye başladığında herkes paniğe kapıldı. Ben de...',
+          'Onu kimse söndürmesin diye sakladım. Beş ışığı ben sakladım — korumak için!',
+          'Ama korumak sandığım şey, krallığı karanlığa boğdu. Kendi korkum gölgem oldu.',
+          'Şimdi geri mi almaya geldin? Yoksa beni de mi yargılayacaksın?',
+        ],
+        action: 5,
+      }
+    if (stage === 5)
+      return {
+        lines: [
+          'Taşıdığın ışık... çok sıcak. Onu yargı için değil, paylaşmak için getirdin.',
+          'Kardeşim Pofu hâlâ beni bekliyor, öyle mi? Onca yıldan sonra...',
+          'Belki de korkuyu bırakmanın vakti geldi. Ellerini uzat, yolcu.',
+          'Bu ışığı birlikte göğe geri verelim — krallık yeniden doğsun. 🌅',
+        ],
+        action: 6,
+      }
+    return { lines: ['...'] }
   }
   return { lines: ['...'] }
 }
@@ -61,10 +111,12 @@ function dialogueFor(npcId: string, stage: number, collected: number): { lines: 
 function objectiveText(stage: number, collected: number): string {
   switch (stage) {
     case 0: return '🧙 Bilge Pofu ile konuş'
-    case 1: return `🍈 Sihirli papayaları topla: ${collected}/${NEED}`
+    case 1: return collected >= NEED ? '🛡️ Bekçi Karpuz’a dön' : `🍈 Sihirli papayaları topla: ${collected}/${NEED}`
     case 2: return '✨ Işık Taşı’na dokun'
-    case 3: return '🌀 Portala ulaş'
-    default: return '🏆 Krallık kurtarıldı!'
+    case 3: return '🌀 Portala gir'
+    case 4: return '🌑 Gölge Het ile yüzleş'
+    case 5: return '💜 Gölge Het’e umudu göster'
+    default: return '🌅 Şafak — krallık kurtarıldı!'
   }
 }
 
@@ -190,6 +242,7 @@ interface LocalProps {
   dirRef: React.MutableRefObject<Vec>
   stageRef: React.MutableRefObject<number>
   collectedRef: React.MutableRefObject<Set<number>>
+  npcsRef: React.MutableRefObject<NpcDef[]>
   onCollect: (i: number) => void
   onOrb: () => void
   onPortal: () => void
@@ -197,7 +250,7 @@ interface LocalProps {
   sendPos: (x: number, z: number) => void
 }
 
-function LocalPlayer({ color, dirRef, stageRef, collectedRef, onCollect, onOrb, onPortal, onNpc, sendPos }: LocalProps) {
+function LocalPlayer({ color, dirRef, stageRef, collectedRef, npcsRef, onCollect, onOrb, onPortal, onNpc, sendPos }: LocalProps) {
   const ref = useRef<THREE.Mesh>(null)
   const pos = useRef(new THREE.Vector3(0, 0.5, -4))
   const { camera } = useThree()
@@ -233,7 +286,7 @@ function LocalPlayer({ color, dirRef, stageRef, collectedRef, onCollect, onOrb, 
 
     // en yakın NPC (etkileşim için)
     let near: string | null = null
-    for (const n of NPCS) if (dist(me, n) < 2.4) near = n.id
+    for (const n of npcsRef.current) if (dist(me, n) < 2.4) near = n.id
     if (near !== nearNpc.current) {
       nearNpc.current = near
       onNpc(near)
@@ -265,6 +318,8 @@ export default function CoopQuestPage() {
   const [dialogue, setDialogue] = useState<{ npcId: string; line: number; lines: string[]; action?: number } | null>(null)
   const [nearNpc, setNearNpc] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [card, setCard] = useState<Chapter | null>(CHAPTERS[1])
+  const shownChapters = useRef<Set<number>>(new Set([1]))
 
   const stageRef = useRef(0)
   stageRef.current = stage
@@ -273,8 +328,23 @@ export default function CoopQuestPage() {
   const dirRef = useRef<Vec>({ x: 0, z: 0 })
   const me = useMemo(() => ({ color: profile.color, name: profile.name }), [profile])
 
+  // Aktif NPC listesi (Gölge Het yalnızca gölgeler diyarında)
+  const activeNpcs = useMemo(() => (stage >= 4 ? [...NPCS, SHADOW] : NPCS), [stage])
+  const npcsRef = useRef<NpcDef[]>(activeNpcs)
+  npcsRef.current = activeNpcs
+
   const collected = collectedIds.length
-  const victory = stage >= 4
+  const victory = stage >= 6
+  const shadowRealm = stage >= 4
+
+  // Yeni bölüme geçince kart göster
+  useEffect(() => {
+    const ch = chapterOf(stage)
+    if (!shownChapters.current.has(ch)) {
+      shownChapters.current.add(ch)
+      setCard(CHAPTERS[ch])
+    }
+  }, [stage])
 
   const broadcastQuest = (s: number, ids: number[]) => sendEvent('quest', { stage: s, collected: ids })
 
@@ -373,8 +443,11 @@ export default function CoopQuestPage() {
   const restart = () => {
     collectedRef.current = new Set()
     setCollectedIds([])
+    stageRef.current = 0
     setStage(0)
     setDialogue(null)
+    shownChapters.current = new Set([1])
+    setCard(CHAPTERS[1])
     broadcastQuest(0, [])
   }
 
@@ -392,7 +465,7 @@ export default function CoopQuestPage() {
   }
   const endPad = () => { dirRef.current = { x: 0, z: 0 } }
 
-  const npc = dialogue ? NPCS.find((n) => n.id === dialogue.npcId) : null
+  const npc = dialogue ? [...NPCS, SHADOW].find((n) => n.id === dialogue.npcId) : null
 
   return (
     <div className="relative flex h-full flex-col bg-ink-900">
@@ -412,21 +485,21 @@ export default function CoopQuestPage() {
       )}
 
       <Canvas shadows camera={{ position: [0, 8, 10], fov: 55 }} className="flex-1">
-        <fog attach="fog" args={['#1a1030', 20, 46]} />
-        <hemisphereLight args={['#a78bfa', '#1d3a24', 0.7]} />
-        <ambientLight intensity={0.35} />
-        <directionalLight position={[8, 14, 6]} intensity={1.2} castShadow shadow-mapSize={[1024, 1024]} />
-        <pointLight position={[0, 5, 0]} intensity={0.6} color="#f95816" distance={30} />
+        <fog attach="fog" args={[shadowRealm ? '#120a22' : '#1a1030', shadowRealm ? 14 : 20, shadowRealm ? 38 : 46]} />
+        <hemisphereLight args={[shadowRealm ? '#6d28d9' : '#a78bfa', '#1d3a24', shadowRealm ? 0.4 : 0.7]} />
+        <ambientLight intensity={shadowRealm ? 0.25 : 0.35} />
+        <directionalLight position={[8, 14, 6]} intensity={shadowRealm ? 0.7 : 1.2} castShadow shadow-mapSize={[1024, 1024]} />
+        <pointLight position={[0, 5, 0]} intensity={shadowRealm ? 0.9 : 0.6} color={shadowRealm ? '#7c3aed' : '#f95816'} distance={30} />
         <SkyDome />
         <Fireflies />
         <Scenery />
         <World />
-        {NPCS.map((n) => <NpcMesh key={n.id} npc={n} />)}
+        {activeNpcs.map((n) => <NpcMesh key={n.id} npc={n} />)}
         {stage === 1 && PAPAYAS.map((p, i) => (!collectedIds.includes(i) ? <Pickup key={i} p={p} /> : null))}
         {stage === 2 && <Orb />}
-        {stage >= 3 && <Portal />}
+        {stage >= 3 && stage < 5 && <Portal />}
         <LocalPlayer
-          color={me.color} dirRef={dirRef} stageRef={stageRef} collectedRef={collectedRef}
+          color={me.color} dirRef={dirRef} stageRef={stageRef} collectedRef={collectedRef} npcsRef={npcsRef}
           onCollect={onCollect} onOrb={onOrb} onPortal={onPortal} onNpc={handleNpc} sendPos={sendPos}
         />
         {remotes.map((r) => <RemotePlayer key={r.id} r={r} />)}
@@ -472,16 +545,32 @@ export default function CoopQuestPage() {
         </div>
       )}
 
-      {/* Zafer ekranı */}
+      {/* Bölüm kartı */}
+      {card && !victory && (
+        <button
+          onClick={() => setCard(null)}
+          className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-ink-900/90 px-8 text-center backdrop-blur-md animate-pop-in"
+        >
+          <span className="text-sm font-semibold uppercase tracking-[0.3em] text-papaya-400">Bölüm {card.n}</span>
+          <h2 className="text-gradient mt-2 text-4xl font-extrabold">{card.title}</h2>
+          <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/70">{card.text}</p>
+          <span className="mt-8 text-xs text-white/40">dokun ▸</span>
+        </button>
+      )}
+
+      {/* Zafer / final */}
       {victory && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-ink-900/80 backdrop-blur-sm animate-pop-in">
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-ink-900/85 backdrop-blur-sm animate-pop-in">
           <div className="mx-8 flex flex-col items-center rounded-3xl border border-white/10 bg-gradient-to-br from-papaya-500/20 to-grape-500/20 p-8 text-center">
-            <div className="text-6xl">🏆</div>
-            <h2 className="mt-3 text-2xl font-extrabold text-white">Krallık kurtarıldı!</h2>
-            <p className="mt-2 text-sm text-white/70">Sihirli papayaları toplayıp portalı açtınız. Papaya Krallığı yeniden aydınlandı. 🍈✨</p>
+            <div className="text-6xl">🌅</div>
+            <h2 className="mt-3 text-2xl font-extrabold text-white">Şafak Söktü</h2>
+            <p className="mt-2 text-sm leading-relaxed text-white/70">
+              Het’in kalbindeki kırgınlık iyileşti. İki kardeş, Pofu ve Het, Büyük Papaya’nın ışığını birlikte göğe geri verdi.
+              Papaya Krallığı yeniden doğdu — ve bu sefer hiçbir gölge yalnız kalmayacak. 🍈✨
+            </p>
             <div className="mt-6 flex gap-2">
               <button onClick={() => navigate('/games')} className="btn-ghost px-5 py-2.5">Oyunlar</button>
-              <button onClick={restart} className="btn-primary px-6 py-2.5">Tekrar oyna</button>
+              <button onClick={restart} className="btn-primary px-6 py-2.5">Yeniden başla</button>
             </div>
           </div>
         </div>
