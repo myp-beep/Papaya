@@ -15,8 +15,17 @@ import { tex } from '../lib/textures'
 import Enemy, { type EnemyHandle } from '../components/Enemy'
 import QuestPanel from '../components/QuestPanel'
 import FishingMinigame from '../components/FishingMinigame'
+import QuickChat from '../components/QuickChat'
+import EmoteWheel from '../components/EmoteWheel'
+import Minimap from '../components/Minimap'
+import PingMarker from '../components/PingMarker'
 import { startAmbient, stopAmbient, sfx } from '../lib/sound'
 import type { EnemyDef, Quest } from '../types'
+
+interface RemoteInfo {
+  id: string; x: number; z: number; color: string; name: string
+  hp: number; maxHp: number; emote: string | null; emoteTs: number
+}
 
 const BOUND = 14
 const SPEED = 6.5
@@ -283,9 +292,12 @@ function PortalC() {
   )
 }
 
-function RemotePlayer({ r }: { r: { x: number; z: number; color: string } }) {
+function RemotePlayer({ r }: { r: RemoteInfo }) {
   const ref = useRef<THREE.Group>(null)
   const animRef = useRef<AnimState>('Idle')
+  const [showEmote, setShowEmote] = useState(false)
+  const [emoteChar, setEmoteChar] = useState('')
+  const lastEmoteTs = useRef(0)
   useFrame(() => {
     const g = ref.current
     if (!g) return
@@ -301,11 +313,33 @@ function RemotePlayer({ r }: { r: { x: number; z: number; color: string } }) {
     } else {
       animRef.current = 'Idle'
     }
+    if (r.emote && r.emoteTs !== lastEmoteTs.current) {
+      lastEmoteTs.current = r.emoteTs
+      setEmoteChar(r.emote)
+      setShowEmote(true)
+      window.setTimeout(() => setShowEmote(false), 1600)
+    }
   })
+  const hpPct = r.maxHp > 0 ? (r.hp / r.maxHp) * 100 : 100
   return (
     <group ref={ref} position={[r.x, 0, r.z]}>
+      <Html position={[0, 2.4, 0]} center distanceFactor={12} pointerEvents="none">
+        <div className="flex flex-col items-center gap-0.5">
+          <div className="whitespace-nowrap rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur flex items-center gap-1">
+            <span className="opacity-70">👤</span> {r.name}
+          </div>
+          <div className="flex h-1 w-14 overflow-hidden rounded-full bg-black/50">
+            <div className="h-full rounded-full transition-all" style={{ width: `${hpPct}%`, background: hpPct > 50 ? '#22c55e' : hpPct > 25 ? '#facc15' : '#ef4444' }} />
+          </div>
+          {showEmote && (
+            <div className="animate-pop-in text-2xl drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]" style={{ animation: 'popIn 0.2s ease-out' }}>
+              {emoteChar}
+            </div>
+          )}
+        </div>
+      </Html>
       <Suspense fallback={<mesh position={[0, 0.5, 0]}><sphereGeometry args={[0.5, 16, 16]} /><meshStandardMaterial color={r.color} /></mesh>}>
-        <Avatar3D stateRef={animRef} />
+        <Avatar3D stateRef={animRef} tint={r.color} />
       </Suspense>
     </group>
   )
@@ -409,7 +443,7 @@ export default function CoopQuestPage() {
 
   const [stage, setStage] = useState(0)
   const [collectedIds, setCollectedIds] = useState<number[]>([])
-  const [remotes, setRemotes] = useState<{ id: string; x: number; z: number; color: string }[]>([])
+  const [remotes, setRemotes] = useState<RemoteInfo[]>([])
   const [dialogue, setDialogue] = useState<{ npcId: string; line: number; lines: string[]; action?: number } | null>(null)
   const [nearNpc, setNearNpc] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -429,15 +463,21 @@ export default function CoopQuestPage() {
 
   const [showFishing, setShowFishing] = useState(false)
   const [nearFishing, setNearFishing] = useState(false)
+  const [showQuickChat, setShowQuickChat] = useState(false)
+  const [showEmoteWheel, setShowEmoteWheel] = useState(false)
+  const [chatLog, setChatLog] = useState<string[]>([])
+  const [pings, setPings] = useState<{ x: number; z: number; id: string }[]>([])
+  const pingIdRef = useRef(0)
 
   const enemyRefs = useRef<Map<string, EnemyHandle>>(new Map())
+  const enemyPositionsRef = useRef<Vec[]>([])
   const attackRef = useRef(false)
   const playerPosRef = useRef<Vec>({ x: 0, z: 0 })
 
   const stageRef = useRef(0)
   stageRef.current = stage
   const collectedRef = useRef<Set<number>>(new Set())
-  const remotesRef = useRef<Map<string, { id: string; x: number; z: number; color: string; last: number }>>(new Map())
+  const remotesRef = useRef<Map<string, RemoteInfo & { last: number }>>(new Map())
   const dirRef = useRef<Vec>({ x: 0, z: 0 })
   const emoteRef = useRef<AnimState | null>(null)
   const me = useMemo(() => ({ color: profile.color, name: profile.name }), [profile])
@@ -460,9 +500,17 @@ export default function CoopQuestPage() {
     }
   }, [stage])
 
+  const joinedRef = useRef(false)
   useEffect(() => {
     startAmbient()
-    return () => stopAmbient()
+    if (!joinedRef.current) {
+      joinedRef.current = true
+      sendEvent('kingdom:join', { name: me.name, color: me.color, hp: 5, maxHp: 5 })
+    }
+    return () => {
+      stopAmbient()
+      sendEvent('kingdom:leave', {})
+    }
   }, [])
 
   const tryAttack = useCallback(() => {
@@ -511,7 +559,67 @@ export default function CoopQuestPage() {
     const offPos = onEvent('arena:pos', (p) => {
       const id = String(p.from)
       if (id === myId) return
-      remotesRef.current.set(id, { id, x: Number(p.x) || 0, z: Number(p.z) || 0, color: String(p.color ?? '#888'), last: Date.now() })
+      const existing = remotesRef.current.get(id)
+      remotesRef.current.set(id, {
+        id, x: Number(p.x) || 0, z: Number(p.z) || 0,
+        color: String(p.color ?? '#888'), name: String(p.name ?? '???'),
+        hp: p.hp != null ? Number(p.hp) : (existing?.hp ?? 5),
+        maxHp: p.maxHp != null ? Number(p.maxHp) : (existing?.maxHp ?? 5),
+        emote: existing?.emote ?? null,
+        emoteTs: existing?.emoteTs ?? 0,
+        last: Date.now(),
+      })
+    })
+    const offEmote = onEvent('kingdom:emote', (p) => {
+      const id = String(p.from)
+      if (id === myId) return
+      const r = remotesRef.current.get(id)
+      if (!r) return
+      r.emote = String(p.emoji ?? '👋')
+      r.emoteTs = Date.now()
+      remotesRef.current.set(id, { ...r, emote: r.emote, emoteTs: r.emoteTs })
+    })
+    const offJoin = onEvent('kingdom:join', (p) => {
+      const id = String(p.from)
+      if (id === myId) return
+      const n = String(p.name ?? 'Birisi')
+      setToast(`🎮 ${n} krallığa katıldı!`)
+      window.setTimeout(() => setToast(null), 2500)
+    })
+    const offLeave = onEvent('kingdom:leave', (p) => {
+      const id = String(p.from)
+      if (id === myId) return
+      const existing = remotesRef.current.get(id)
+      const n = existing?.name ?? 'Birisi'
+      remotesRef.current.delete(id)
+      setToast(`😢 ${n} ayrıldı`)
+      window.setTimeout(() => setToast(null), 2500)
+    })
+    const offHit = onEvent('kingdom:hit', (p) => {
+      const enemyId = String(p.enemyId ?? '')
+      const handle = enemyRefs.current.get(enemyId)
+      if (handle) {
+        handle.hit()
+        sfx.tap()
+      }
+    })
+    const offPing = onEvent('kingdom:ping', (p) => {
+      const id = String(Math.random())
+      const px = Number(p.x) || 0
+      const pz = Number(p.z) || 0
+      setPings((prev) => [...prev, { x: px, z: pz, id }].slice(-8))
+      setToast(`📍 ${remotesRef.current.get(String(p.from))?.name ?? 'Birisi'} işaret bıraktı`)
+      window.setTimeout(() => setToast(null), 2000)
+    })
+    const offChat = onEvent('kingdom:chat', (p) => {
+      const id = String(p.from)
+      if (id === myId) return
+      const r = remotesRef.current.get(id)
+      const name = r?.name ?? 'Birisi'
+      const msg = String(p.msg ?? '')
+      setChatLog((prev) => [`${name}: ${msg}`, ...prev].slice(0, 20))
+      setToast(`💬 ${name}: ${msg}`)
+      window.setTimeout(() => setToast(null), 2500)
     })
     const offQuest = onEvent('quest', (p) => {
       const incomingStage = Number(p.stage) || 0
@@ -524,13 +632,40 @@ export default function CoopQuestPage() {
     const iv = window.setInterval(() => {
       const now = Date.now()
       for (const [id, r] of remotesRef.current) if (now - r.last > 4000) remotesRef.current.delete(id)
-      setRemotes([...remotesRef.current.values()].map(({ id, x, z, color }) => ({ id, x, z, color })))
+      setRemotes([...remotesRef.current.values()].map(({ id, x, z, color, name, hp, maxHp, emote, emoteTs }) => ({ id, x, z, color, name, hp, maxHp, emote, emoteTs })))
     }, 200)
-    return () => { offPos(); offQuest(); window.clearInterval(iv) }
+    const epIv = window.setInterval(() => {
+      const eps: Vec[] = []
+      for (const [, h] of enemyRefs.current) eps.push(h.getPos())
+      enemyPositionsRef.current = eps
+    }, 300)
+    return () => { offPos(); offEmote(); offJoin(); offLeave(); offPing(); offChat(); offQuest(); window.clearInterval(iv); window.clearInterval(epIv) }
   }, [onEvent, myId])
 
   const sendPos = (x: number, z: number) =>
-    sendEvent('arena:pos', { x: Math.round(x * 100) / 100, z: Math.round(z * 100) / 100, name: me.name, color: me.color })
+    sendEvent('arena:pos', { x: Math.round(x * 100) / 100, z: Math.round(z * 100) / 100, name: me.name, color: me.color, hp, maxHp })
+
+  const sendEmote = useCallback((emoji: string, anim: AnimState) => {
+    emoteRef.current = anim
+    sendEvent('kingdom:emote', { emoji })
+    haptic('select')
+  }, [sendEvent])
+
+  const sendChatMessage = useCallback((msg: string) => {
+    sendEvent('kingdom:chat', { msg })
+    setChatLog((prev) => [`Sen: ${msg}`, ...prev].slice(0, 20))
+    haptic('light')
+  }, [sendEvent])
+
+  const sendPing = useCallback(() => {
+    const pos = playerPosRef.current
+    const id = String(++pingIdRef.current)
+    sendEvent('kingdom:ping', { x: Math.round(pos.x * 10) / 10, z: Math.round(pos.z * 10) / 10 })
+    setPings((prev) => [...prev, { x: pos.x, z: pos.z, id }].slice(-5))
+    setToast('📍 İşaret bırakıldı!')
+    window.setTimeout(() => setToast(null), 1000)
+    haptic('light')
+  }, [sendEvent])
 
   const onCollect = (i: number) => {
     if (collectedRef.current.has(i)) return
@@ -704,25 +839,46 @@ export default function CoopQuestPage() {
     <div className={`relative flex h-full flex-col bg-ink-900 ${shake ? 'animate-shake' : ''}`}>
       <Confetti show={victory} />
 
+      {/* Mini harita (sağ üst) */}
+      <div className="absolute right-3 top-14 z-10">
+        <Minimap
+          playerX={playerPosRef.current.x}
+          playerZ={playerPosRef.current.z}
+          remotes={remotes}
+          pickupPositions={PAPAYAS.filter((_, i) => !collectedIds.includes(i))}
+          enemyPositions={enemyPositionsRef.current}
+          discoveredRegions={discoveredRegions}
+          pingPosition={pings.length > 0 ? pings[pings.length - 1] : null}
+        />
+      </div>
+
       {/* HUD */}
-      <header className="absolute left-0 right-0 top-0 z-10 flex items-center gap-2 px-3 pt-4">
-        <button onClick={() => navigate('/games')} className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-xl text-white/80 backdrop-blur" aria-label="Geri">‹</button>
-        <div className="glass max-w-[55%] rounded-full px-4 py-1.5 text-sm font-semibold text-white truncate">{objectiveText(stage, collected)}</div>
-        {/* Can barı */}
-        <div className="glass ml-auto flex items-center gap-1.5 rounded-full px-3 py-1.5">
-          <span className="text-xs">❤️</span>
-          <div className="flex gap-0.5">
+      <header className="absolute left-0 right-0 top-0 z-10 flex items-center gap-1.5 px-3 pt-4">
+        <button onClick={() => navigate('/games')} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-black/40 text-lg text-white/80 backdrop-blur" aria-label="Geri">‹</button>
+        <div className="glass max-w-[45%] truncate rounded-full px-3 py-1 text-xs font-semibold text-white">{objectiveText(stage, collected)}</div>
+        {/* Kendi can barı */}
+        <div className="glass ml-auto flex items-center gap-1 rounded-full px-2 py-1">
+          <span className="text-[10px]">❤️</span>
+          <div className="flex gap-px">
             {Array.from({ length: maxHp }, (_, i) => (
-              <div
-                key={i}
-                className={`h-2 w-2 rounded-full transition-all ${
-                  i < hp ? (hp <= 2 ? 'bg-red-400 hp-low' : 'bg-green-400') : 'bg-white/15'
-                }`}
-              />
+              <div key={i} className={`h-2 w-1.5 rounded-full transition-all ${i < hp ? (hp <= 2 ? 'bg-red-400 hp-low' : 'bg-green-400') : 'bg-white/15'}`} />
             ))}
           </div>
         </div>
-        <div className="glass rounded-full px-3 py-1.5 text-xs text-white/70">{remotes.length > 0 ? `${remotes.length} eş` : 'Co-op'}</div>
+        {/* Parti üyeleri */}
+        {remotes.slice(0, 2).map((r) => {
+          const d = Math.round(dist(playerPosRef.current, { x: r.x, z: r.z }))
+          const rHpPct = r.maxHp > 0 ? (r.hp / r.maxHp) * 100 : 100
+          return (
+            <div key={r.id} className="glass flex items-center gap-1 rounded-full px-2 py-1">
+              <span className="text-[10px]">{r.name.slice(0, 1)}</span>
+              <div className="flex h-1.5 w-8 overflow-hidden rounded-full bg-black/40">
+                <div className="h-full rounded-full transition-all" style={{ width: `${rHpPct}%`, background: rHpPct > 50 ? '#22c55e' : rHpPct > 25 ? '#facc15' : '#ef4444' }} />
+              </div>
+              <span className="text-[9px] text-white/50">{d}m</span>
+            </div>
+          )
+        })}
       </header>
 
       {/* Görev butonu + panel */}
@@ -772,51 +928,68 @@ export default function CoopQuestPage() {
           onCollect={onCollect} onOrb={onOrb} onPortal={onPortal} onNpc={handleNpc} sendPos={sendPos}
         />
         {remotes.map((r) => <RemotePlayer key={r.id} r={r} />)}
+        {pings.map((p) => <PingMarker key={p.id} x={p.x} z={p.z} />)}
         <Effects />
       </Canvas>
 
-      {/* Konuş butonu */}
+      {/* Konuş butonu (contextual — joystick üstü) */}
       {nearNpc && !dialogue && !victory && (
-        <button onClick={tryTalk} className="btn-primary absolute bottom-32 left-1/2 z-20 -translate-x-1/2 px-6 py-2.5 animate-pop-in">
-          💬 Konuş (E)
+        <button onClick={tryTalk} className="btn-primary absolute bottom-40 left-1/2 z-20 -translate-x-1/2 px-5 py-2 text-sm animate-pop-in">
+          💬 Konuş
         </button>
       )}
 
-      {/* Balık tut butonu */}
+      {/* Balık tut butonu (contextual — sağ, aksiyon butonlarının üstü) */}
       {nearFishing && !dialogue && !victory && (
-        <button onClick={() => setShowFishing(true)} className="btn-primary absolute bottom-32 right-4 z-20 px-5 py-2.5 animate-pop-in">
+        <button onClick={() => setShowFishing(true)} className="btn-primary absolute bottom-44 right-4 z-20 px-4 py-2 text-sm animate-pop-in">
           🎣 Balık Tut
         </button>
       )}
 
-      {/* Kılıç/Atak butonu */}
-      {!nearNpc && !dialogue && !victory && !showFishing && (
-        <button onClick={tryAttack} className="absolute bottom-32 right-6 z-10 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-papaya-400 to-red-600 text-2xl font-bold text-white shadow-glow transition active:scale-90">
-          ⚔️
-        </button>
-      )}
-
-      {/* Joystick */}
+      {/* Joystick (büyütüldü: 32x32) */}
       <div
         ref={padRef}
         onPointerDown={(e) => { (e.target as HTMLElement).setPointerCapture(e.pointerId); onPad(e) }}
         onPointerMove={(e) => e.buttons && onPad(e)}
         onPointerUp={endPad}
         onPointerCancel={endPad}
-        className="absolute bottom-8 left-8 z-10 h-28 w-28 touch-none rounded-full border border-white/15 bg-white/[0.06] backdrop-blur"
+        className="absolute bottom-6 left-6 z-10 h-32 w-32 touch-none rounded-full border border-white/15 bg-white/[0.06] backdrop-blur shadow-[0_0_30px_rgba(249,88,22,0.15)]"
       >
-        <div className="absolute left-1/2 top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-papaya-500/70" />
+        <div className="absolute left-1/2 top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-br from-papaya-500 to-papaya-600 shadow-glow" />
       </div>
 
-      {/* Emote butonları */}
-      {!dialogue && !card && !victory && (
-        <div className="absolute bottom-9 right-6 z-10 flex flex-col gap-2">
-          {([['Wave', '👋'], ['Dance', '💃'], ['Jump', '🦘']] as [AnimState, string][]).map(([a, e]) => (
-            <button key={a} onClick={() => { emoteRef.current = a; haptic('select') }} className="glass flex h-12 w-12 items-center justify-center rounded-full text-2xl transition active:scale-90">
-              {e}
+      {/* Sağ aksiyon butonları (dikey) — yalnızca aktif oynanışta */}
+      {!dialogue && !card && !victory && !showFishing && (
+        <div className="absolute bottom-6 right-3 z-10 flex flex-col items-center gap-2">
+          {/* Saldırı (birincil) */}
+          {!nearNpc && (
+            <button onClick={tryAttack} className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-papaya-400 to-red-600 text-2xl font-bold text-white shadow-glow transition active:scale-90 shadow-[0_4px_20px_rgba(249,88,22,0.4)]">
+              ⚔️
             </button>
-          ))}
+          )}
+          {/* Tepki (EmoteWheel açar) */}
+          <button onClick={() => setShowEmoteWheel(true)} className="glass flex h-11 w-11 items-center justify-center rounded-full text-lg transition active:scale-90">
+            😊
+          </button>
+          {/* Ping */}
+          <button onClick={sendPing} className="glass flex h-11 w-11 items-center justify-center rounded-full text-lg transition active:scale-90">
+            📍
+          </button>
+          {/* Hızlı mesaj */}
+          <button onClick={() => setShowQuickChat(true)} className="glass flex h-11 w-11 items-center justify-center rounded-full text-lg transition active:scale-90">
+            💬
+          </button>
         </div>
+      )}
+
+      {/* EmoteWheel */}
+      {showEmoteWheel && (
+        <EmoteWheel onSelect={sendEmote} onClose={() => setShowEmoteWheel(false)} />
+      )}
+
+      {/* QuickChat */}
+      {showQuickChat && (
+        <QuickChat onSelect={sendChatMessage} onClose={() => setShowQuickChat(false)} recentLog={chatLog} />
       )}
 
       {/* Diyalog paneli */}

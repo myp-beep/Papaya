@@ -141,12 +141,14 @@ export interface GameState {
   discoveredRegions: string[]
 }
 
+
 // --- Kart Savaşı tipleri ---
 
 export type CardType = 'creature' | 'spell' | 'weapon'
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary'
 export type GamePhase = 'mulligan' | 'draw' | 'main' | 'attack' | 'end'
-export type TargetMode = 'none' | 'enemy_creature' | 'own_creature' | 'hero' | 'all_enemies'
+export type Faction = 'nature' | 'fire' | 'ice' | 'shadow' | 'holy'
+export type HeroId = 'warrior' | 'mage' | 'druid' | 'shadow'
 
 export interface CardEffect {
   damage?: number
@@ -162,6 +164,18 @@ export interface CardEffect {
   stealLife?: boolean
   win?: boolean
   silence?: boolean
+  poison?: boolean
+  shield?: number
+  summon?: { id: string; count: number }
+  copyTarget?: boolean
+  transform?: string
+  frenzy?: boolean
+  deathrattle?: { effect: CardEffect }
+  combo?: { effect: CardEffect }
+  returnToHand?: boolean
+  reduceCost?: number
+  discover?: boolean
+  addToHand?: string
 }
 
 export interface CardDef {
@@ -175,7 +189,8 @@ export interface CardDef {
   description: string
   effect?: CardEffect
   rarity: Rarity
-  faction?: 'nature' | 'fire' | 'ice' | 'shadow' | 'holy'
+  faction?: Faction
+  keywords?: string[]
 }
 
 export interface BoardCreature {
@@ -189,6 +204,23 @@ export interface BoardCreature {
   taunt: boolean
   charge: boolean
   silence: boolean
+  poison: boolean
+  shield: number
+  frenzy: boolean
+  deathrattle?: { effect: CardEffect }
+  summonedThisTurn?: boolean
+}
+
+export interface HeroDef {
+  id: HeroId
+  name: string
+  emoji: string
+  color: string
+  hp: number
+  powerName: string
+  powerDesc: string
+  powerCost: number
+  powerEffect: CardEffect
 }
 
 export interface PlayerState {
@@ -201,6 +233,9 @@ export interface PlayerState {
   board: BoardCreature[]
   weaponAtk: number
   weaponDurability: number
+  hero: HeroId
+  heroPowerUsed: boolean
+  armor: number
 }
 
 export interface CardGameState {
@@ -212,9 +247,39 @@ export interface CardGameState {
   winner: number | null
   turnActions: number
   log: string[]
+  botDifficulty: BotLevel
 }
+
+export type BotLevel = 'easy' | 'normal' | 'hard'
 
 export interface CardCollection {
   owned: Record<string, number>
   selectedDeck: string[]
+  coins: number
+  dust: number
+  wins: number
+  losses: number
+  streak: number
+  lastDaily: number
+  heroXp: Record<string, number>
+}
+
+export interface CardPackResult {
+  cards: CardDef[]
+}
+
+// --- Arkadaşlık Sistemi ---
+
+export type FriendRequestStatus = 'pending' | 'accepted' | 'declined'
+
+export interface FriendRequest {
+  id: string
+  fromUserId: string
+  toUserId: string
+  status: FriendRequestStatus
+  createdAt: number
+  /** fromUserId kullanıcısının bilgileri (görüntüleme için). */
+  fromUser?: { name: string; avatar: string; color: string }
+  /** toUserId kullanıcısının bilgileri. */
+  toUser?: { name: string; avatar: string; color: string }
 }

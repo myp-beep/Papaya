@@ -17,7 +17,7 @@ export default function QuestPanel({ quests, currentIndex, onSelect }: QuestPane
     <>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="glass absolute right-3 top-14 z-10 flex h-9 w-9 items-center justify-center rounded-full text-sm transition active:scale-90"
+        className="glass absolute right-3 top-24 z-10 flex h-9 w-9 items-center justify-center rounded-full text-sm transition active:scale-90"
         title="Görevler"
       >
         📋
@@ -94,7 +94,7 @@ export default function QuestPanel({ quests, currentIndex, onSelect }: QuestPane
       )}
 
       {!open && current && (
-        <div className="absolute left-3 top-14 z-10 max-w-[55%]">
+        <div className="absolute left-3 top-24 z-10 max-w-[55%]">
           <div className="glass rounded-full px-3 py-1.5 text-xs text-white/70">
             {current.emoji} {current.name}
             {allDone(current) && ' ✓'}

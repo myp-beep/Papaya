@@ -17,6 +17,11 @@ const GAMES: GameItem[] = [
   { emoji: '⚓', name: 'Amiral Battı', desc: 'Donanma savaşı', to: '/games/battleship' },
 ]
 
+const CARD_LINKS: GameItem[] = [
+  { emoji: '🃏', name: 'Deste Oluştur', desc: 'Kartlarını seç', to: '/games/cards/deck' },
+  { emoji: '💎', name: 'Koleksiyon', desc: 'Kartların ve paketler', to: '/games/cards/collection' },
+]
+
 export default function GamesPage() {
   const navigate = useNavigate()
   const [muted, setMutedState] = useState(isMuted())
@@ -105,6 +110,25 @@ export default function GamesPage() {
       </h2>
       <div className="grid grid-cols-2 gap-3 px-5">
         {GAMES.map((g) => (
+          <button
+            key={g.name}
+            onClick={() => g.to && go(g.to)}
+            className="glass flex aspect-square flex-col items-center justify-center gap-2 rounded-3xl transition active:scale-[0.96] hover:border-papaya-500/40 hover:bg-white/[0.07]"
+          >
+            <span className="text-4xl drop-shadow-lg">{g.emoji}</span>
+            <span className="text-sm font-semibold text-white/80">{g.name}</span>
+            <span className="rounded-full bg-papaya-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-papaya-400">
+              {g.desc}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <h2 className="px-5 pb-2 pt-4 text-xs font-semibold uppercase tracking-wide text-white/40">
+        🎴 Kart Savaşı
+      </h2>
+      <div className="grid grid-cols-2 gap-3 px-5">
+        {CARD_LINKS.map((g) => (
           <button
             key={g.name}
             onClick={() => g.to && go(g.to)}

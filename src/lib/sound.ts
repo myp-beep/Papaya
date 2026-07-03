@@ -59,6 +59,26 @@ export const sfx = {
   fishCatch: () => [440, 660, 880].forEach((f, i) => beep(f, 0.1, 'triangle', 0.08, i * 0.06)),
   /** Yeni eşya. */
   item: () => [880, 1100].forEach((f, i) => beep(f, 0.12, 'sine', 0.1, i * 0.08)),
+  /** Kart oynandı. */
+  cardPlay: () => { beep(600, 0.08, 'triangle', 0.08); beep(800, 0.1, 'sine', 0.07, 0.06) },
+  /** Kart çekildi. */
+  cardDraw: () => beep(500, 0.06, 'triangle', 0.07),
+  /** Sıra başlangıcı. */
+  turnStart: () => [440, 550].forEach((f, i) => beep(f, 0.08, 'sine', 0.06, i * 0.05)),
+  /** Yaratık saldırısı. */
+  creatureAttack: () => { beep(200, 0.12, 'sawtooth', 0.08); beep(300, 0.1, 'square', 0.06, 0.05) },
+  /** Yaratık öldü. */
+  creatureDeath: () => beep(150, 0.2, 'sawtooth', 0.06),
+  /** Büyü sesi. */
+  spellCast: () => [500, 700, 900].forEach((f, i) => beep(f, 0.1, 'sine', 0.07, i * 0.05)),
+  /** Kahraman gücü kullanıldı. */
+  heroPower: () => [800, 1000, 1200].forEach((f, i) => beep(f, 0.08, 'triangle', 0.06, i * 0.04)),
+  /** Paket açma. */
+  packOpen: () => [400, 600, 800, 1000, 1200].forEach((f, i) => beep(f, 0.1, 'sine', 0.09, i * 0.06)),
+  /** Kart nadirlik parlaması. */
+  rarityGlow: () => beep(1200, 0.3, 'sine', 0.05),
+  /** Mana yetersiz. */
+  noMana: () => beep(200, 0.15, 'square', 0.05),
 }
 
 // --- Ambient müzik (basit, döngüsel pad) ---
