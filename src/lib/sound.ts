@@ -51,4 +51,67 @@ export const sfx = {
   win: () => [523, 659, 784, 1047].forEach((f, i) => beep(f, 0.16, 'triangle', 0.11, i * 0.11)),
   /** Başarım açıldı. */
   achievement: () => [784, 988, 1319].forEach((f, i) => beep(f, 0.14, 'sine', 0.12, i * 0.09)),
+  /** Darbe alındı. */
+  hit: () => beep(120, 0.2, 'sawtooth', 0.1),
+  /** Düşman yok edildi. */
+  kill: () => { beep(400, 0.1, 'square', 0.07); beep(600, 0.12, 'sine', 0.09, 0.08) },
+  /** Balık yakalandı. */
+  fishCatch: () => [440, 660, 880].forEach((f, i) => beep(f, 0.1, 'triangle', 0.08, i * 0.06)),
+  /** Yeni eşya. */
+  item: () => [880, 1100].forEach((f, i) => beep(f, 0.12, 'sine', 0.1, i * 0.08)),
+}
+
+// --- Ambient müzik (basit, döngüsel pad) ---
+let ambientNodes: OscillatorNode[] | null = null
+let ambientGain: GainNode | null = null
+let ambientActive = false
+
+const AMBIENT_NOTES = [130.81, 164.81, 196.00, 220.00] // C3, E3, G3, A3
+
+export function startAmbient() {
+  if (ambientActive || isMuted()) return
+  const a = ac()
+  if (!a) return
+  ambientActive = true
+  ambientGain = a.createGain()
+  ambientGain.gain.setValueAtTime(0, a.currentTime)
+  ambientGain.gain.linearRampToValueAtTime(0.035, a.currentTime + 2)
+  ambientGain.connect(a.destination)
+
+  ambientNodes = AMBIENT_NOTES.map((freq, i) => {
+    const o = a.createOscillator()
+    o.type = 'sine'
+    o.frequency.value = freq
+    const g = a.createGain()
+    g.gain.setValueAtTime(0.05 / AMBIENT_NOTES.length, a.currentTime)
+    o.connect(g).connect(ambientGain!)
+    o.start()
+    // slow LFO for movement
+    const lfo = a.createOscillator()
+    lfo.type = 'sine'
+    lfo.frequency.value = 0.08 + i * 0.02
+    const lfoGain = a.createGain()
+    lfoGain.gain.value = 0.03
+    lfo.connect(lfoGain).connect(g.gain)
+    lfo.start()
+    return o
+  })
+}
+
+export function stopAmbient() {
+  if (!ambientActive) return
+  ambientActive = false
+  const a = ac()
+  if (a && ambientGain) {
+    ambientGain.gain.linearRampToValueAtTime(0, a.currentTime + 1)
+  }
+  setTimeout(() => {
+    ambientNodes?.forEach((o) => { try { o.stop() } catch {} })
+    ambientNodes = null
+    ambientGain = null
+  }, 1100)
+}
+
+export function isAmbientActive() {
+  return ambientActive
 }

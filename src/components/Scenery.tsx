@@ -242,3 +242,188 @@ export function Scenery() {
     </group>
   )
 }
+
+// --- Bölge işaretleri (yerde renkli halkalar) ---
+interface RegionMarkerProps {
+  x: number
+  z: number
+  color: string
+  active?: boolean
+}
+
+export function RegionMarker({ x, z, color, active }: RegionMarkerProps) {
+  const ref = useRef<THREE.Mesh>(null)
+  useFrame((s) => {
+    if (ref.current) {
+      ref.current.material = new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.25 + Math.sin(s.clock.elapsedTime * 0.5) * 0.1,
+        side: THREE.DoubleSide,
+      })
+    }
+  })
+  return (
+    <group position={[x, 0, z]}>
+      <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[1.8, 2.4, 48]} />
+        <meshBasicMaterial color={color} transparent opacity={0.3} side={THREE.DoubleSide} />
+      </mesh>
+      {active && (
+        <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.1, 2.2, 32]} />
+          <meshBasicMaterial color={color} transparent opacity={0.12} />
+        </mesh>
+      )}
+    </group>
+  )
+}
+
+// --- Gölet (balık tutma alanı) ---
+export function Pond() {
+  return (
+    <group position={[-11, -0.05, -6]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[2.8, 32]} />
+        <meshStandardMaterial
+          color="#1a7a9a"
+          transparent
+          opacity={0.7}
+          roughness={0.1}
+          metalness={0.3}
+        />
+      </mesh>
+      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[2.5, 2.8, 32]} />
+        <meshBasicMaterial color="#6bb8d4" transparent opacity={0.4} />
+      </mesh>
+      <mesh position={[1.2, 1.2, 0.8]}>
+        <cylinderGeometry args={[0.06, 0.12, 1.2, 8]} />
+        <meshStandardMaterial color="#5c3d1a" />
+      </mesh>
+      <mesh position={[1.2, 1.8, 0.8]}>
+        <planeGeometry args={[0.3, 0.15]} />
+        <meshBasicMaterial color="#c4903a" side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  )
+}
+
+// --- Uçan kelebek (mob) ---
+interface ButterflyProps {
+  x: number
+  z: number
+  color?: string
+  radius?: number
+}
+export function Butterfly({ x, z, color = '#facc15', radius = 1.5 }: ButterflyProps) {
+  const ref = useRef<THREE.Group>(null)
+  const lw = useRef<THREE.Group>(null)
+  const rw = useRef<THREE.Group>(null)
+  const phase = useMemo(() => Math.random() * Math.PI * 2, [])
+
+  useFrame((s) => {
+    const t = s.clock.elapsedTime * 0.4 + phase
+    if (ref.current) {
+      ref.current.position.x = x + Math.cos(t) * radius
+      ref.current.position.z = z + Math.sin(t * 1.3) * radius
+      ref.current.position.y = 0.6 + Math.sin(t * 2) * 0.5
+      ref.current.rotation.y = t
+    }
+    const flap = Math.sin(s.clock.elapsedTime * 12 + phase) * 0.6
+    if (lw.current) lw.current.rotation.x = flap
+    if (rw.current) rw.current.rotation.x = -flap
+  })
+
+  return (
+    <group ref={ref} position={[x, 1, z]}>
+      <group ref={lw}>
+        <mesh position={[-0.25, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[0.25, 0.12]} />
+          <meshBasicMaterial color={color} side={THREE.DoubleSide} />
+        </mesh>
+      </group>
+      <group ref={rw}>
+        <mesh position={[0.25, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[0.25, 0.12]} />
+          <meshBasicMaterial color={color} side={THREE.DoubleSide} />
+        </mesh>
+      </group>
+    </group>
+  )
+}
+
+// --- Zıplayan tavşan (mob) ---
+interface RabbitProps {
+  x: number
+  z: number
+}
+export function Rabbit({ x, z }: RabbitProps) {
+  const ref = useRef<THREE.Group>(null)
+  const phase = useMemo(() => Math.random() * Math.PI * 2, [])
+
+  useFrame((s) => {
+    if (!ref.current) return
+    const t = s.clock.elapsedTime + phase
+    const hop = Math.abs(Math.sin(t * 3)) * 0.15
+    ref.current.position.x = x + Math.cos(phase + t * 0.2) * 2
+    ref.current.position.z = z + Math.sin(phase + t * 0.25) * 2
+    ref.current.position.y = hop
+    ref.current.rotation.y = t * 0.3 + phase
+  })
+
+  return (
+    <group ref={ref} position={[x, 0, z]}>
+      <mesh position={[0, 0.2, 0]}>
+        <sphereGeometry args={[0.25, 8, 8]} />
+        <meshStandardMaterial color="#d4c5a0" />
+      </mesh>
+      <mesh position={[0, 0.05, 0.3]}>
+        <sphereGeometry args={[0.12, 8, 8]} />
+        <meshStandardMaterial color="#f0e6d3" />
+      </mesh>
+      <mesh position={[-0.15, 0.08, -0.15]}>
+        <sphereGeometry args={[0.06, 6, 6]} />
+        <meshStandardMaterial color="#e8dcc8" />
+      </mesh>
+      <mesh position={[0.15, 0.08, -0.15]}>
+        <sphereGeometry args={[0.06, 6, 6]} />
+        <meshStandardMaterial color="#e8dcc8" />
+      </mesh>
+    </group>
+  )
+}
+
+// --- Tüm mob'lar (kelebek + tavşan) ---
+const BUTTERFLIES = [
+  { x: -4, z: -3, color: '#facc15' },
+  { x: 6, z: 2, color: '#f472b6' },
+  { x: -2, z: 7, color: '#60a5fa' },
+  { x: 3, z: -7, color: '#fbbf24' },
+]
+const RABBITS = [
+  { x: -6, z: -2 },
+  { x: 5, z: -5 },
+  { x: -3, z: 5 },
+]
+
+export function Mobs() {
+  return (
+    <group>
+      {BUTTERFLIES.map((b, i) => (
+        <Butterfly key={'bf' + i} x={b.x} z={b.z} color={b.color} />
+      ))}
+      {RABBITS.map((r, i) => (
+        <Rabbit key={'rb' + i} x={r.x} z={r.z} />
+      ))}
+    </group>
+  )
+}
+
+// --- Bölge verisi (CoopQuestPage'de kullanılır) ---
+export const REGIONS = [
+  { id: 'meadow', name: 'Çiçekli Çayır', emoji: '🌼', color: '#facc15', center: { x: 0, z: 0 }, radius: 9 },
+  { id: 'dark-forest', name: 'Karanlık Orman', emoji: '🌲', color: '#166534', center: { x: 12, z: 8 }, radius: 6 },
+  { id: 'crystal-lake', name: 'Kristal Göl', emoji: '💎', color: '#0ea5e9', center: { x: -11, z: -6 }, radius: 5 },
+  { id: 'ancient-ruins', name: 'Antik Harabeler', emoji: '🏛️', color: '#8b5cf6', center: { x: -8, z: 10 }, radius: 5 },
+]

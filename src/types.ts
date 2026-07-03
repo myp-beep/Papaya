@@ -72,3 +72,71 @@ export interface Profile {
   color: string
   status: string
 }
+
+// --- Papaya Krallığı ek tipler ---
+
+export interface QuestObjective {
+  type: 'collect' | 'defeat' | 'talk' | 'explore' | 'fish'
+  targetId: string
+  label: string
+  current: number
+  needed: number
+}
+
+export interface Quest {
+  id: string
+  name: string
+  desc: string
+  emoji: string
+  objectives: QuestObjective[]
+  xpReward: number
+  itemReward?: string
+}
+
+export interface EnemyDef {
+  id: string
+  name: string
+  emoji: string
+  color: string
+  hp: number
+  damage: number
+  speed: number
+  patrolPath: Vec2[]
+  aggroRange: number
+}
+
+export interface Vec2 {
+  x: number
+  z: number
+}
+
+export interface MapRegion {
+  id: string
+  name: string
+  emoji: string
+  color: string
+  center: Vec2
+  radius: number
+}
+
+export interface FishingSpot {
+  id: string
+  position: Vec2
+}
+
+export interface InventoryItem {
+  id: string
+  name: string
+  emoji: string
+  desc: string
+}
+
+export interface GameState {
+  hp: number
+  maxHp: number
+  inventory: InventoryItem[]
+  quests: Quest[]
+  currentQuestIndex: number
+  defeatedEnemies: string[]
+  discoveredRegions: string[]
+}
