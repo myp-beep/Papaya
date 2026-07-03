@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Avatar from '../components/Avatar'
 import { useProfile } from '../data/profileStore'
 import { USERS } from '../data/mockData'
+import { getStats } from '../data/statsStore'
 
 const AVATAR_CHOICES = ['😎', '🦊', '🐼', '🐙', '🦄', '🐯', '🐸', '🦁', '🐵', '🐧', '🍈', '🔥']
 const COLOR_CHOICES = ['#f95816', '#fb7a3c', '#8b5cf6', '#22b8cf', '#e64980', '#22c55e']
@@ -21,11 +22,11 @@ export default function ProfilePage() {
   const [avatar, setAvatar] = useState(profile.avatar)
   const [color, setColor] = useState(profile.color)
 
-  const bestMemory = localStorage.getItem('papaya.memory.best.v1')
+  const gameStats = getStats()
   const stats = [
     { label: 'Arkadaş', value: String(Object.keys(USERS).length) },
-    { label: 'Oyun', value: bestMemory ? '1' : '0' },
-    { label: 'Rozet', value: '3' },
+    { label: 'Oyun', value: String(gameStats.plays) },
+    { label: 'Rozet', value: String(gameStats.unlocked.length) },
   ]
 
   const openEdit = () => {

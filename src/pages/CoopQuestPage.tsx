@@ -7,6 +7,7 @@ import { useChat } from '../data/chatStore'
 import { useProfile } from '../data/profileStore'
 import { haptic } from '../lib/haptics'
 import Confetti from '../components/Confetti'
+import { recordGame } from '../data/statsStore'
 import { Scenery, Fireflies, InstancedGrass, Birds } from '../components/Scenery'
 import Effects from '../components/Effects'
 import { Avatar3D, type AnimState } from '../components/Character'
@@ -463,6 +464,15 @@ export default function CoopQuestPage() {
   }
   const onOrb = () => { if (stageRef.current === 2) { haptic('success'); setToast('Portal açıldı! 🌀'); window.setTimeout(() => setToast(null), 1600); advance(3) } }
   const onPortal = () => { if (stageRef.current === 3) { haptic('success'); advance(4) } }
+
+  // Final: XP + başarım (bir kez)
+  const victoryRecorded = useRef(false)
+  useEffect(() => {
+    if (victory && !victoryRecorded.current) {
+      victoryRecorded.current = true
+      recordGame({ won: true, xp: 100, achievementIds: ['quest-done'] })
+    }
+  }, [victory])
 
   // Diyalog
   const tryTalk = () => {

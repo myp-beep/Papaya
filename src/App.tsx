@@ -7,17 +7,15 @@ import ChatListPage from './pages/ChatListPage'
 import ChatRoomPage from './pages/ChatRoomPage'
 import NewChatPage from './pages/NewChatPage'
 import GamesPage from './pages/GamesPage'
-import MemoryGamePage from './pages/MemoryGamePage'
 import TicTacToePage from './pages/TicTacToePage'
-import ReactionGamePage from './pages/ReactionGamePage'
-import Game2048Page from './pages/Game2048Page'
+import BattleshipPage from './pages/BattleshipPage'
 import OnlineTicPage from './pages/OnlineTicPage'
+import AchievementToast from './components/AchievementToast'
 import DiscoverPage from './pages/DiscoverPage'
 import ProfilePage from './pages/ProfilePage'
 import GameInviteListener from './components/GameInviteListener'
 
 // 3D oyunlar ağır (three.js) — yalnızca girince yüklensin
-const ArenaPage = lazy(() => import('./pages/ArenaPage'))
 const CoopQuestPage = lazy(() => import('./pages/CoopQuestPage'))
 
 export default function App() {
@@ -51,10 +49,8 @@ export default function App() {
             <Route index element={<ChatListPage />} />
             <Route path="new-chat" element={<NewChatPage />} />
             <Route path="games" element={<GamesPage />} />
-            <Route path="games/memory" element={<MemoryGamePage />} />
             <Route path="games/tic" element={<TicTacToePage />} />
-            <Route path="games/reaction" element={<ReactionGamePage />} />
-            <Route path="games/2048" element={<Game2048Page />} />
+            <Route path="games/battleship" element={<BattleshipPage />} />
             <Route path="discover" element={<DiscoverPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
@@ -62,15 +58,6 @@ export default function App() {
           <Route path="chat/:id" element={<ChatRoomPage />} />
           {/* Canlı çok oyunculu XOX */}
           <Route path="play/tic/:gameId" element={<OnlineTicPage />} />
-          {/* 3D çok oyunculu arena */}
-          <Route
-            path="games/arena"
-            element={
-              <Suspense fallback={<div className="flex h-full items-center justify-center text-5xl animate-pop-in">🍈</div>}>
-                <ArenaPage />
-              </Suspense>
-            }
-          />
           {/* Co-op hikâye macerası (3D) */}
           <Route
             path="games/coop"
@@ -81,8 +68,9 @@ export default function App() {
             }
           />
         </Routes>
-        {/* Uygulama genelinde gelen oyun davetleri */}
+        {/* Uygulama genelinde gelen oyun davetleri + başarım bildirimleri */}
         <GameInviteListener />
+        <AchievementToast />
         </>
         )}
         </div>

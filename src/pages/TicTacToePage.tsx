@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Confetti from '../components/Confetti'
 import { haptic } from '../lib/haptics'
+import { sfx } from '../lib/sound'
+import { recordGame } from '../data/statsStore'
 
 type Cell = 'X' | 'O' | null
 type Difficulty = 'kolay' | 'orta' | 'imkansiz'
@@ -127,9 +129,17 @@ export default function TicTacToePage() {
     if (winner?.player === 'X') {
       setScore((s) => ({ ...s, win: s.win + 1 }))
       haptic('success')
-    } else if (winner?.player === 'O') setScore((s) => ({ ...s, loss: s.loss + 1 }))
-    else setScore((s) => ({ ...s, draw: s.draw + 1 }))
-  }, [over, recorded, winner])
+      sfx.win()
+      recordGame({ won: true, achievementIds: diff === 'imkansiz' ? ['tic-impossible'] : [] })
+    } else if (winner?.player === 'O') {
+      setScore((s) => ({ ...s, loss: s.loss + 1 }))
+      sfx.fail()
+      recordGame({ won: false })
+    } else {
+      setScore((s) => ({ ...s, draw: s.draw + 1 }))
+      recordGame({ won: false, xp: 15 })
+    }
+  }, [over, recorded, winner, diff])
 
   useEffect(() => {
     localStorage.setItem(DIFF_KEY, diff)
@@ -148,6 +158,7 @@ export default function TicTacToePage() {
       afterPlayer[index] = 'X'
       setBoard(afterPlayer)
       haptic('light')
+      sfx.tap()
 
       // Oyuncu hamlesi oyunu bitirdiyse bot oynamaz
       if (getWinner(afterPlayer) || afterPlayer.every((c) => c !== null)) return
@@ -191,7 +202,9 @@ export default function TicTacToePage() {
           ‹
         </button>
         <div className="flex-1">
-          <h1 className="text-xl font-extrabold tracking-tight text-white">⭕ XOX</h1>
+          <h1 className="flex items-center gap-2 text-xl font-extrabold tracking-tight text-white">
+            <span className="text-gradient">XOX</span>
+          </h1>
           <p className="text-xs text-white/45">Bota karşı oyna (yenmesi zor!)</p>
         </div>
         <button
@@ -228,25 +241,43 @@ export default function TicTacToePage() {
       </div>
 
       {/* Durum */}
-      <div className="mb-3 text-center text-sm font-semibold text-white/80">{statusText}</div>
+      <div className="mb-3 flex items-center justify-center gap-2 text-sm font-semibold text-white/80">
+        {botThinking && (
+          <span className="flex gap-1">
+            <Dot delay="0s" />
+            <Dot delay="0.15s" />
+            <Dot delay="0.3s" />
+          </span>
+        )}
+        {statusText}
+      </div>
 
       {/* Tahta */}
-      <div className="px-8">
-        <div className="grid grid-cols-3 gap-2.5">
+      <div className="px-6">
+        <div className="glass relative grid grid-cols-3 gap-2.5 rounded-[1.75rem] p-3 shadow-card">
+          {/* arka plan ışıltısı */}
+          <span className="pointer-events-none absolute -inset-2 -z-10 rounded-[2rem] bg-gradient-to-br from-papaya-500/10 via-transparent to-grape-500/10 blur-xl" />
           {board.map((cell, i) => {
             const isWinning = winner?.line.includes(i)
+            const playable = !cell && !over && !botThinking
             return (
               <button
                 key={i}
                 onClick={() => play(i)}
                 disabled={!!cell || over || botThinking}
-                className={`flex aspect-square items-center justify-center rounded-2xl border text-4xl font-black transition ${
+                className={`group relative flex aspect-square items-center justify-center rounded-2xl border transition ${
                   isWinning
-                    ? 'border-emerald-400/60 bg-emerald-500/20'
-                    : 'border-ink-600 bg-ink-800 enabled:hover:bg-ink-700'
-                } ${cell === 'X' ? 'text-papaya-400' : 'text-grape-400'}`}
+                    ? 'win-pulse border-emerald-400/60 bg-emerald-500/15'
+                    : 'border-white/10 bg-ink-900/50 enabled:hover:border-papaya-400/40 enabled:hover:bg-ink-800/70'
+                }`}
               >
-                {cell}
+                {cell === 'X' && <MarkX />}
+                {cell === 'O' && <MarkO />}
+                {playable && (
+                  <span className="text-3xl font-black text-white/0 transition group-hover:text-papaya-400/25">
+                    ×
+                  </span>
+                )}
               </button>
             )
           })}
@@ -266,6 +297,61 @@ export default function TicTacToePage() {
 
       <div className="h-6" />
     </div>
+  )
+}
+
+/** Elle çizilir gibi animasyonlu X işareti. */
+function MarkX() {
+  return (
+    <svg viewBox="0 0 100 100" className="h-[62%] w-[62%] drop-shadow-[0_2px_10px_rgba(249,88,22,0.5)]">
+      <line
+        x1="22" y1="22" x2="78" y2="78"
+        pathLength={1}
+        className="mark-stroke"
+        stroke="url(#xg)" strokeWidth="12" strokeLinecap="round"
+      />
+      <line
+        x1="78" y1="22" x2="22" y2="78"
+        pathLength={1}
+        className="mark-stroke s2"
+        stroke="url(#xg)" strokeWidth="12" strokeLinecap="round"
+      />
+      <defs>
+        <linearGradient id="xg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#fb7a3c" />
+          <stop offset="1" stopColor="#ea3d0c" />
+        </linearGradient>
+      </defs>
+    </svg>
+  )
+}
+
+/** Elle çizilir gibi animasyonlu O işareti. */
+function MarkO() {
+  return (
+    <svg viewBox="0 0 100 100" className="h-[62%] w-[62%] drop-shadow-[0_2px_10px_rgba(139,92,246,0.5)]">
+      <circle
+        cx="50" cy="50" r="30"
+        pathLength={1}
+        className="mark-stroke"
+        fill="none" stroke="url(#og)" strokeWidth="12" strokeLinecap="round"
+      />
+      <defs>
+        <linearGradient id="og" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#a78bfa" />
+          <stop offset="1" stopColor="#7c3aed" />
+        </linearGradient>
+      </defs>
+    </svg>
+  )
+}
+
+function Dot({ delay }: { delay: string }) {
+  return (
+    <span
+      className="h-1.5 w-1.5 animate-bounce rounded-full bg-papaya-400"
+      style={{ animationDelay: delay }}
+    />
   )
 }
 
