@@ -12,6 +12,7 @@ interface GameItem {
 }
 
 const GAMES: GameItem[] = [
+  { emoji: '🎴', name: 'Kart Savaşı', desc: 'Strateji kart oyunu', to: '/games/cards' },
   { emoji: '⭕', name: 'XOX', desc: 'Bota karşı', to: '/games/tic' },
   { emoji: '⚓', name: 'Amiral Battı', desc: 'Donanma savaşı', to: '/games/battleship' },
 ]

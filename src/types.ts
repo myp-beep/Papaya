@@ -140,3 +140,81 @@ export interface GameState {
   defeatedEnemies: string[]
   discoveredRegions: string[]
 }
+
+// --- Kart Savaşı tipleri ---
+
+export type CardType = 'creature' | 'spell' | 'weapon'
+export type Rarity = 'common' | 'rare' | 'epic' | 'legendary'
+export type GamePhase = 'mulligan' | 'draw' | 'main' | 'attack' | 'end'
+export type TargetMode = 'none' | 'enemy_creature' | 'own_creature' | 'hero' | 'all_enemies'
+
+export interface CardEffect {
+  damage?: number
+  heal?: number
+  draw?: number
+  buffAttack?: number
+  buffHp?: number
+  freeze?: boolean
+  taunt?: boolean
+  charge?: boolean
+  dealToAll?: number
+  destroyRandom?: boolean
+  stealLife?: boolean
+  win?: boolean
+  silence?: boolean
+}
+
+export interface CardDef {
+  id: string
+  name: string
+  emoji: string
+  cost: number
+  type: CardType
+  attack?: number
+  hp?: number
+  description: string
+  effect?: CardEffect
+  rarity: Rarity
+  faction?: 'nature' | 'fire' | 'ice' | 'shadow' | 'holy'
+}
+
+export interface BoardCreature {
+  id: string
+  cardId: string
+  attack: number
+  hp: number
+  maxHp: number
+  canAttack: boolean
+  frozen: boolean
+  taunt: boolean
+  charge: boolean
+  silence: boolean
+}
+
+export interface PlayerState {
+  hp: number
+  maxHp: number
+  mana: number
+  maxMana: number
+  deck: string[]
+  hand: string[]
+  board: BoardCreature[]
+  weaponAtk: number
+  weaponDurability: number
+}
+
+export interface CardGameState {
+  player: PlayerState
+  opponent: PlayerState
+  turn: number
+  phase: GamePhase
+  turnOwner: 0 | 1
+  winner: number | null
+  turnActions: number
+  log: string[]
+}
+
+export interface CardCollection {
+  owned: Record<string, number>
+  selectedDeck: string[]
+}

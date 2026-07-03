@@ -266,3 +266,12 @@ body {
 .hp-low {
   animation: hpPulse 1s ease-in-out infinite;
 }
+
+/* Kart savaşı scrollbar */
+.scrollbar-thin::-webkit-scrollbar {
+  height: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #3a3357;
+  border-radius: 999px;
+}

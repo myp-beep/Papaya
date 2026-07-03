@@ -10,6 +10,7 @@ import GamesPage from './pages/GamesPage'
 import TicTacToePage from './pages/TicTacToePage'
 import BattleshipPage from './pages/BattleshipPage'
 import OnlineTicPage from './pages/OnlineTicPage'
+import CardBattlePage from './pages/CardBattlePage'
 import AchievementToast from './components/AchievementToast'
 import DiscoverPage from './pages/DiscoverPage'
 import ProfilePage from './pages/ProfilePage'
@@ -51,6 +52,7 @@ export default function App() {
             <Route path="games" element={<GamesPage />} />
             <Route path="games/tic" element={<TicTacToePage />} />
             <Route path="games/battleship" element={<BattleshipPage />} />
+            <Route path="games/cards" element={<CardBattlePage />} />
             <Route path="discover" element={<DiscoverPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
