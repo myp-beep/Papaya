@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import Avatar from '../components/Avatar'
 import { useChat } from '../data/chatStore'
 import { useProfile } from '../data/profileStore'
+import { useCall } from '../data/callStore'
 import { clockTime } from '../utils/time'
 import { haptic } from '../lib/haptics'
 
@@ -18,6 +19,7 @@ export default function ChatRoomPage() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const typingTimer = useRef<number | null>(null)
 
+  const { startCall } = useCall()
   const thread = getThread(id)
   const isTyping = typing[id]
 
@@ -103,6 +105,24 @@ export default function ChatRoomPage() {
             {isTyping ? 'yazıyor…' : peer.online ? 'çevrimiçi' : 'çevrimdışı'}
           </div>
         </div>
+        {realtime && peer.id !== 'papaya-bot' && (
+          <>
+            <button
+              onClick={() => startCall({ id: peer.id, name: peer.name, avatar: peer.avatar, color: peer.color }, false)}
+              className="flex h-9 w-9 items-center justify-center rounded-full text-lg text-white/60 transition hover:bg-ink-700"
+              title="Sesli arama"
+            >
+              📞
+            </button>
+            <button
+              onClick={() => startCall({ id: peer.id, name: peer.name, avatar: peer.avatar, color: peer.color }, true)}
+              className="flex h-9 w-9 items-center justify-center rounded-full text-lg text-white/60 transition hover:bg-ink-700"
+              title="Görüntülü arama"
+            >
+              📹
+            </button>
+          </>
+        )}
         <button
           onClick={onPlay}
           className="flex h-9 w-9 items-center justify-center rounded-full text-lg text-white/60 transition hover:bg-ink-700"

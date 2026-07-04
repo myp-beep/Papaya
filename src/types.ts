@@ -291,6 +291,26 @@ export interface CardPackResult {
   cards: CardDef[]
 }
 
+// --- Sesli/Görüntülü Arama ---
+
+export type CallStatus = 'idle' | 'calling' | 'ringing' | 'connecting' | 'connected' | 'ended'
+
+export interface CallPeer {
+  id: string
+  name: string
+  avatar: string
+  color: string
+}
+
+export interface CallState {
+  status: CallStatus
+  peer: CallPeer | null
+  isVideo: boolean
+  isIncoming: boolean
+  isAudioMuted: boolean
+  isVideoMuted: boolean
+}
+
 // --- Arkadaşlık Sistemi ---
 
 export type FriendRequestStatus = 'pending' | 'accepted' | 'declined'

@@ -19,6 +19,8 @@ import DeckBuilderPage from './pages/DeckBuilderPage'
 import CardCollectionPage from './pages/CardCollectionPage'
 import CardGalleryPage from './pages/CardGalleryPage'
 import AchievementToast from './components/AchievementToast'
+import IncomingCall from './components/IncomingCall'
+import CallView from './components/CallView'
 import DiscoverPage from './pages/DiscoverPage'
 import ProfilePage from './pages/ProfilePage'
 import FriendsPage from './pages/FriendsPage'
@@ -94,6 +96,8 @@ export default function App() {
         {/* Uygulama genelinde gelen oyun davetleri + başarım bildirimleri */}
         <GameInviteListener />
         <AchievementToast />
+        <IncomingCall />
+        <CallView />
         </>
         )}
         </div>
