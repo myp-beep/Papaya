@@ -6,8 +6,11 @@ const EMOTES: { emoji: string; label: string; anim: AnimState }[] = [
   { emoji: '💃', label: 'Dans', anim: 'Dance' },
   { emoji: '🦘', label: 'Zıpla', anim: 'Jump' },
   { emoji: '❤️', label: 'Kalp', anim: 'Wave' },
-  { emoji: '😡', label: 'Savaş', anim: 'Wave' },
-  { emoji: '📣', label: 'Seslen', anim: 'Wave' },
+  { emoji: '🔥', label: 'Ateş', anim: 'Dance' },
+  { emoji: '🙌', label: 'Alkış', anim: 'Wave' },
+  { emoji: '🤝', label: 'Tokalaş', anim: 'Wave' },
+  { emoji: '🪑', label: 'Otur', anim: 'Idle' },
+  { emoji: '🎉', label: 'Kutlama', anim: 'Dance' },
 ]
 
 interface EmoteWheelProps {
@@ -28,7 +31,7 @@ export default function EmoteWheel({ onSelect, onClose }: EmoteWheelProps) {
 
   return (
     <div className="absolute bottom-40 right-4 z-30 animate-pop-in" ref={ref}>
-      <div className="grid grid-cols-3 gap-2 rounded-3xl border border-white/10 bg-ink-800/90 p-3 backdrop-blur-xl shadow-[0_10px_40px_rgba(0,0,0,0.6)]">
+      <div className="grid grid-cols-4 gap-1.5 rounded-3xl border border-white/10 bg-ink-800/90 p-3 backdrop-blur-xl shadow-[0_10px_40px_rgba(0,0,0,0.6)]">
         {EMOTES.map((e) => (
           <button
             key={e.emoji}

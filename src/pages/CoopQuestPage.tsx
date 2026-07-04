@@ -8,7 +8,7 @@ import { useProfile } from '../data/profileStore'
 import { haptic } from '../lib/haptics'
 import Confetti from '../components/Confetti'
 import { recordGame } from '../data/statsStore'
-import { Scenery, Fireflies, InstancedGrass, Birds, Pond, RegionMarker, Mobs, REGIONS } from '../components/Scenery'
+import { Scenery, Fireflies, InstancedGrass, Birds, Pond, RegionMarker, Mobs, TownDecorations, REGIONS } from '../components/Scenery'
 import Effects from '../components/Effects'
 import { Avatar3D, type AnimState } from '../components/Character'
 import { tex } from '../lib/textures'
@@ -41,6 +41,9 @@ const NPCS: NpcDef[] = [
   { id: 'elder', name: 'Bilge Pofu', emoji: '🧙', color: '#8b5cf6', x: 0, z: -8 },
   { id: 'guardian', name: 'Bekçi Karpuz', emoji: '🛡️', color: '#22b8cf', x: 8, z: 6 },
   { id: 'merchant', name: 'Tüccar Mango', emoji: '🧳', color: '#f59e0b', x: -6, z: -9 },
+  { id: 'crier', name: 'Tellal Civan', emoji: '📯', color: '#facc15', x: 3, z: -5 },
+  { id: 'elder2', name: 'Nine Hatun', emoji: '👵', color: '#f472b6', x: -4, z: 3 },
+  { id: 'guardian2', name: 'Yamuk Recep', emoji: '🪓', color: '#10b981', x: 5, z: 2 },
 ]
 const SHADOW: NpcDef = { id: 'shadow', name: 'Gölge Het', emoji: '🌑', color: '#6d28d9', x: 0, z: 7 }
 const PAPAYAS: Vec[] = [
@@ -49,6 +52,8 @@ const PAPAYAS: Vec[] = [
 const ORB: Vec = { x: -8, z: -1 }
 const PORTAL: Vec = { x: 0, z: 9 }
 const FISHING_SPOT: Vec = { x: -11, z: -6 }
+const CAMPFIRE_CENTER: Vec = { x: 0, z: 0 }
+const NEAR_CAMPFIRE_DIST = 2.6
 
 // --- Düşman tanımları ---
 const ENEMIES: EnemyDef[] = [
@@ -148,6 +153,41 @@ function dialogueFor(npcId: string, stage: number, collected: number, defeated: 
         'Merhaba yolcu! Ben Tüccar Mango. 🧳',
         'Şurada kristal gölde nadir balıklar var. Biraz balık tutup getirirsen sana güzel bir hediyem var.',
         'Balık tutmak için göle git ve "🎣 Balık Tut" butonuna bas. İyi şanslar!',
+      ],
+    }
+  }
+
+  if (npcId === 'crier') {
+    const onlineCount = 4 // would be dynamic in realtime
+    return {
+      lines: [
+        `📯 Duyuru! Duyuru! Papaya Krallığı'na hoş geldin!`,
+        `Şu an ${onlineCount} kadar kişi bu diyarda.`,
+        'Kamp ateşinde oturup sohbet edebilir, birlikte balık tutabilirsiniz.',
+        'Kılıcınla gölgelere vur (␣ boşluk tuşu) ve görevleri tamamla!',
+        'Yakında turnuvalar, grup etkinlikleri ve çok daha fazlası gelecek! 🍈',
+      ],
+    }
+  }
+
+  if (npcId === 'elder2') {
+    return {
+      lines: [
+        'Ah evlat, benim zamanımda papayalar böyle miydi? Kocamandı! 🍈',
+        'Şu kamp ateşinin başında gençler toplanır, türküler söylerdi.',
+        'Sen de arkadaşlarınla otur, biraz soluklan. Acele etme.',
+        'Hayat kısa, papaya tükenmez. 😊',
+      ],
+    }
+  }
+
+  if (npcId === 'guardian2') {
+    return {
+      lines: [
+        'Selam yolcu! Ben Yamuk Recep. 🤠',
+        'Şu ormanda dolaşan gölgeler var ya, onlarla baş etmek kolay değil.',
+        'Ama birkaç kişiyle birlikte olursanız, her biri daha güçlü!',
+        'Birlikte savaşmak, yalnız savaşmaktan iyidir. Unutma bunu!',
       ],
     }
   }
@@ -478,6 +518,8 @@ export default function CoopQuestPage() {
 
   const [showFishing, setShowFishing] = useState(false)
   const [nearFishing, setNearFishing] = useState(false)
+  const [nearCampfire, setNearCampfire] = useState(false)
+  const [isSitting, setIsSitting] = useState(false)
   const [showQuickChat, setShowQuickChat] = useState(false)
   const [showEmoteWheel, setShowEmoteWheel] = useState(false)
   const [showInventory, setShowInventory] = useState(false)
@@ -985,6 +1027,23 @@ export default function CoopQuestPage() {
     return () => clearInterval(iv)
   }, [])
 
+  // Kamp ateşi yakınında mı?
+  useEffect(() => {
+    const iv = setInterval(() => {
+      const d = dist(playerPosRef.current, CAMPFIRE_CENTER)
+      setNearCampfire(d < NEAR_CAMPFIRE_DIST)
+    }, 300)
+    return () => clearInterval(iv)
+  }, [])
+
+  const toggleSit = useCallback(() => {
+    setIsSitting((s) => !s)
+    haptic('select')
+    if (isSitting) {
+      sendEvent('kingdom:emote', { emoji: '🪑' })
+    }
+  }, [sendEvent, isSitting])
+
   return (
     <div className={`relative flex h-full flex-col bg-ink-900 ${shake ? 'animate-shake' : ''}`}>
       <Confetti show={victory} />
@@ -1071,6 +1130,7 @@ export default function CoopQuestPage() {
           <Ground />
           <InstancedGrass count={1800} radius={BOUND} />
           <Scenery />
+          <TownDecorations />
           <Pond />
           <Mobs />
           {REGIONS.map((r) => (
@@ -1122,6 +1182,16 @@ export default function CoopQuestPage() {
       {nearFishing && !dialogue && !victory && (
         <button onClick={() => setShowFishing(true)} className="btn-primary absolute bottom-44 right-4 z-20 px-4 py-2 text-sm animate-pop-in">
           🎣 Balık Tut
+        </button>
+      )}
+
+      {/* Kamp ateşi — otur butonu */}
+      {nearCampfire && !dialogue && !victory && !knockedDown && (
+        <button
+          onClick={toggleSit}
+          className="btn-primary absolute bottom-44 right-4 z-20 px-4 py-2 text-sm animate-pop-in"
+        >
+          {isSitting ? '🙋 Kalk' : '🪑 Otur'}
         </button>
       )}
 

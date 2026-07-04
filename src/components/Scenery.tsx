@@ -420,6 +420,181 @@ export function Mobs() {
   )
 }
 
+// ——— Toplanma alanı: kamp ateşi ———
+function Flame({ pos }: { pos: [number, number, number] }) {
+  const ref = useRef<THREE.Group>(null)
+  const lightRef = useRef<THREE.PointLight>(null)
+  useFrame((s) => {
+    if (ref.current) {
+      ref.current.scale.setScalar(1 + Math.sin(s.clock.elapsedTime * 6) * 0.15)
+      ref.current.position.y = pos[1] + 0.5 + Math.sin(s.clock.elapsedTime * 5) * 0.1
+    }
+    if (lightRef.current) {
+      lightRef.current.intensity = 0.8 + Math.sin(s.clock.elapsedTime * 4) * 0.3
+    }
+  })
+  return (
+    <group position={pos}>
+      <pointLight ref={lightRef} intensity={0.8} distance={12} decay={2} color="#f97316" />
+      <group ref={ref}>
+        <mesh position={[0, 0.4, 0]}>
+          <coneGeometry args={[0.4, 0.8, 8]} />
+          <meshBasicMaterial color="#f97316" />
+        </mesh>
+        <mesh position={[0.1, 0.3, 0.1]}>
+          <coneGeometry args={[0.25, 0.6, 8]} />
+          <meshBasicMaterial color="#facc15" />
+        </mesh>
+        <mesh position={[-0.08, 0.2, 0.05]}>
+          <coneGeometry args={[0.2, 0.5, 8]} />
+          <meshBasicMaterial color="#fef08a" />
+        </mesh>
+      </group>
+      <mesh position={[0, -0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.6, 0.9, 24]} />
+        <meshStandardMaterial color="#4a3728" roughness={1} />
+      </mesh>
+    </group>
+  )
+}
+
+/** Kamp ateşi etrafında oturma noktaları */
+const SIT_SPOTS: [number, number, number][] = [
+  [1.8, 0, 0], [-1.8, 0, 0], [0, 0, 1.8], [0, 0, -1.8],
+  [1.3, 0, 1.3], [-1.3, 0, -1.3], [1.3, 0, -1.3], [-1.3, 0, 1.3],
+]
+const FIRE_POS: [number, number, number] = [0, 0.05, 0]
+
+function LogStool({ pos }: { pos: [number, number, number] }) {
+  return (
+    <group position={pos}>
+      <mesh position={[0, 0.15, 0]}>
+        <cylinderGeometry args={[0.2, 0.25, 0.3, 10]} />
+        <meshStandardMaterial color="#5c3d1a" roughness={1} />
+      </mesh>
+      <mesh position={[0, 0.3, 0]}>
+        <circleGeometry args={[0.2, 10]} />
+        <meshStandardMaterial color="#7a5530" roughness={1} />
+      </mesh>
+    </group>
+  )
+}
+
+/** Kamp ateşi toplanma alanı — oturma noktaları + ateş */
+export function Campfire() {
+  return (
+    <group>
+      <Flame pos={FIRE_POS} />
+      {SIT_SPOTS.map((p, i) => (
+        <LogStool key={'stool' + i} pos={p} />
+      ))}
+      {/* Kül halkası */}
+      <mesh position={[0, -0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[1.1, 2.2, 32]} />
+        <meshBasicMaterial color="#3a2510" transparent opacity={0.4} />
+      </mesh>
+    </group>
+  )
+}
+
+// ——— Bank ———
+function Bench({ pos, rotY = 0 }: { pos: [number, number, number]; rotY?: number }) {
+  return (
+    <group position={pos} rotation={[0, rotY, 0]}>
+      <mesh position={[0, 0.4, 0]}>
+        <boxGeometry args={[1.2, 0.12, 0.4]} />
+        <meshStandardMaterial color="#6b4c2a" roughness={0.9} />
+      </mesh>
+      <mesh position={[-0.5, 0.2, 0]}>
+        <boxGeometry args={[0.08, 0.4, 0.4]} />
+        <meshStandardMaterial color="#5c3d1a" roughness={1} />
+      </mesh>
+      <mesh position={[0.5, 0.2, 0]}>
+        <boxGeometry args={[0.08, 0.4, 0.4]} />
+        <meshStandardMaterial color="#5c3d1a" roughness={1} />
+      </mesh>
+    </group>
+  )
+}
+
+// ——— Fener direği ———
+function Lamppost({ pos }: { pos: [number, number, number] }) {
+  const ref = useRef<THREE.PointLight>(null)
+  useFrame((s) => {
+    if (ref.current) ref.current.intensity = 0.4 + Math.sin(s.clock.elapsedTime * 2 + pos[0]) * 0.15
+  })
+  return (
+    <group position={pos}>
+      <pointLight ref={ref} intensity={0.4} distance={6} color="#fcd34d" />
+      <mesh position={[0, 1.2, 0]}>
+        <cylinderGeometry args={[0.04, 0.06, 2.4, 8]} />
+        <meshStandardMaterial color="#3a3020" />
+      </mesh>
+      <mesh position={[0, 2.45, 0]}>
+        <sphereGeometry args={[0.15, 8, 8]} />
+        <meshStandardMaterial color="#fcd34d" emissive="#f59e0b" emissiveIntensity={0.8} />
+      </mesh>
+      <mesh position={[0, 2.3, 0]}>
+        <cylinderGeometry args={[0.12, 0.08, 0.2, 8]} />
+        <meshStandardMaterial color="#4a3a20" />
+      </mesh>
+    </group>
+  )
+}
+
+// ——— Çiçek ———
+function Flower({ pos, color = '#f472b6' }: { pos: [number, number, number]; color?: string }) {
+  return (
+    <group position={[pos[0], 0.05, pos[2]]}>
+      <mesh position={[0, 0.15, 0]}>
+        <cylinderGeometry args={[0.01, 0.02, 0.3, 6]} />
+        <meshStandardMaterial color="#4a7a3a" />
+      </mesh>
+      <mesh position={[0, 0.3, 0]}>
+        <sphereGeometry args={[0.08, 6, 6]} />
+        <meshStandardMaterial color={color} />
+      </mesh>
+    </group>
+  )
+}
+
+// ——— Genişletilmiş dekorasyonlar ———
+const TOWN_LAMPS: [number, number][] = [
+  [-3, -4], [3, -4], [-4, 3], [4, 3],
+]
+const TOWN_BENCHES: { pos: [number, number, number]; rotY: number }[] = [
+  { pos: [-2.5, 0, -4.5], rotY: 0 },
+  { pos: [2.5, 0, -4.5], rotY: 0 },
+]
+const FLOWERS: { pos: [number, number, number]; color: string }[] = [
+  { pos: [-5, 0, -5], color: '#f472b6' },
+  { pos: [5, 0, -5], color: '#facc15' },
+  { pos: [-5, 0, 5], color: '#60a5fa' },
+  { pos: [5, 0, 5], color: '#fbbf24' },
+  { pos: [-2, 0, 6], color: '#f472b6' },
+  { pos: [2, 0, 6], color: '#a78bfa' },
+  { pos: [-6, 0, 0], color: '#facc15' },
+  { pos: [6, 0, 0], color: '#34d399' },
+]
+
+/** Dekoratif şehir mobilyaları (kamp ateşi, banklar, fenerler, çiçekler) */
+export function TownDecorations() {
+  return (
+    <group>
+      <Campfire />
+      {TOWN_LAMPS.map(([x, z], i) => (
+        <Lamppost key={'lamp' + i} pos={[x, 0, z]} />
+      ))}
+      {TOWN_BENCHES.map((b, i) => (
+        <Bench key={'bench' + i} pos={b.pos} rotY={b.rotY} />
+      ))}
+      {FLOWERS.map((f, i) => (
+        <Flower key={'fl' + i} pos={f.pos} color={f.color} />
+      ))}
+    </group>
+  )
+}
+
 // --- Bölge verisi (CoopQuestPage'de kullanılır) ---
 export const REGIONS = [
   { id: 'meadow', name: 'Çiçekli Çayır', emoji: '🌼', color: '#facc15', center: { x: 0, z: 0 }, radius: 9 },
