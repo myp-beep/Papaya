@@ -15,6 +15,11 @@ export const USERS: Record<string, User> = {
   deniz: { id: 'deniz', name: 'Deniz', avatar: '🐙', color: '#22b8cf', online: false },
   papaya: { id: 'papaya', name: 'Papaya Bot', avatar: '🍈', color: '#f95816', online: true },
   lina: { id: 'lina', name: 'Lina', avatar: '🦄', color: '#e64980', online: false },
+  can: { id: 'can', name: 'Can', avatar: '🐺', color: '#10b981', online: true },
+  elif: { id: 'elif', name: 'Elif', avatar: '🌸', color: '#ec4899', online: true },
+  bora: { id: 'bora', name: 'Bora', avatar: '🐉', color: '#f59e0b', online: false },
+  sevgi: { id: 'sevgi', name: 'Sevgi', avatar: '🌺', color: '#ef4444', online: true },
+  alp: { id: 'alp', name: 'Alp', avatar: '🗡️', color: '#6366f1', online: false },
 }
 
 const now = Date.now()
