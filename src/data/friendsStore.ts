@@ -31,6 +31,15 @@ function loadFriends(): Peer[] {
   return []
 }
 
+function seedMockFriends(): Peer[] {
+  return [
+    { id: 'ela', name: 'Ela', avatar: '🦊', color: '#fb7a3c', online: true },
+    { id: 'kaan', name: 'Kaan', avatar: '🐼', color: '#8b5cf6', online: true },
+    { id: 'deniz', name: 'Deniz', avatar: '🐙', color: '#22b8cf', online: false },
+    { id: 'lina', name: 'Lina', avatar: '🦄', color: '#e64980', online: false },
+  ]
+}
+
 function loadRequests(): FriendRequest[] {
   try {
     const raw = localStorage.getItem(REQUESTS_KEY)
@@ -69,7 +78,11 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
   const realtime = isSupabaseConfigured
   const channelRef = useRef<RealtimeChannel | null>(null)
 
-  const [friends, setFriends] = useState<Peer[]>(loadFriends)
+  const [friends, setFriends] = useState<Peer[]>(() => {
+    const stored = loadFriends()
+    if (stored.length) return stored
+    return realtime ? [] : seedMockFriends()
+  })
   const [requests, setRequests] = useState<FriendRequest[]>(loadRequests)
 
   const incoming = useMemo(
@@ -153,7 +166,13 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
           },
         })
       } else {
-        // Mock mod: karşı tarafı simüle et (otomatik istek gelsin)
+        // Mock mod: isteği otomatik kabul et (demo)
+        setTimeout(() => {
+          setRequests((prev) => prev.filter((r) => r.id !== id))
+          setFriends((prev) =>
+            prev.some((f) => f.id === userId) ? prev : [...prev, { id: userId, name, avatar, color, online: true }],
+          )
+        }, 800)
       }
     },
     [myId, profile, realtime],
