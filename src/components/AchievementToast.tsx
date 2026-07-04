@@ -2,25 +2,29 @@ import { useEffect, useRef, useState } from 'react'
 import { onUnlock, type Achievement } from '../data/statsStore'
 import { haptic } from '../lib/haptics'
 
-/** Başarım açıldığında uygulama genelinde beliren kart. */
 export default function AchievementToast() {
   const [queue, setQueue] = useState<Achievement[]>([])
   const [current, setCurrent] = useState<Achievement | null>(null)
-  const timer = useRef<number | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => onUnlock((list) => setQueue((q) => [...q, ...list])), [])
 
   useEffect(() => {
-    if (current || queue.length === 0) return
+    if (current) return
+    if (queue.length === 0) return
     const [head, ...rest] = queue
     setQueue(rest)
     setCurrent(head)
     haptic('success')
-    timer.current = window.setTimeout(() => setCurrent(null), 3200)
+  }, [current, queue])
+
+  useEffect(() => {
+    if (!current) return
+    timerRef.current = setTimeout(() => setCurrent(null), 3500)
     return () => {
-      if (timer.current) window.clearTimeout(timer.current)
+      if (timerRef.current) clearTimeout(timerRef.current)
     }
-  }, [queue, current])
+  }, [current])
 
   if (!current) return null
 
