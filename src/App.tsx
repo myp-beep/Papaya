@@ -6,16 +6,23 @@ import { useProfile } from './data/profileStore'
 import ChatListPage from './pages/ChatListPage'
 import ChatRoomPage from './pages/ChatRoomPage'
 import NewChatPage from './pages/NewChatPage'
+import LiveRoomPage from './pages/LiveRoomPage'
+import CreateStreamPage from './pages/CreateStreamPage'
+import LiveStreamsPage from './pages/LiveStreamsPage'
 import GamesPage from './pages/GamesPage'
 import TicTacToePage from './pages/TicTacToePage'
 import BattleshipPage from './pages/BattleshipPage'
+import OnlineBattleshipPage from './pages/OnlineBattleshipPage'
 import OnlineTicPage from './pages/OnlineTicPage'
 import CardBattlePage from './pages/CardBattlePage'
 import DeckBuilderPage from './pages/DeckBuilderPage'
 import CardCollectionPage from './pages/CardCollectionPage'
+import CardGalleryPage from './pages/CardGalleryPage'
 import AchievementToast from './components/AchievementToast'
 import DiscoverPage from './pages/DiscoverPage'
 import ProfilePage from './pages/ProfilePage'
+import FriendsPage from './pages/FriendsPage'
+import AddFriendPage from './pages/AddFriendPage'
 import GameInviteListener from './components/GameInviteListener'
 
 // 3D oyunlar ağır (three.js) — yalnızca girince yüklensin
@@ -51,19 +58,27 @@ export default function App() {
           <Route element={<AppShell />}>
             <Route index element={<ChatListPage />} />
             <Route path="new-chat" element={<NewChatPage />} />
+            <Route path="friends" element={<FriendsPage />} />
             <Route path="games" element={<GamesPage />} />
             <Route path="games/tic" element={<TicTacToePage />} />
             <Route path="games/battleship" element={<BattleshipPage />} />
             <Route path="games/cards" element={<CardBattlePage />} />
-            <Route path="games/cards/deck" element={<DeckBuilderPage />} />
-            <Route path="games/cards/collection" element={<CardCollectionPage />} />
+            <Route path="games/cards/gallery" element={<CardGalleryPage />} />
             <Route path="discover" element={<DiscoverPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
+          {/* Tam ekran arkadaş ekle (tab bar gizli) */}
+          <Route path="friends/add" element={<AddFriendPage />} />
           {/* Tam ekran sohbet odası (tab bar gizli) */}
           <Route path="chat/:id" element={<ChatRoomPage />} />
+          {/* Canlı yayın sohbet odaları */}
+          <Route path="live/:roomId" element={<LiveRoomPage />} />
+          <Route path="live/new" element={<CreateStreamPage />} />
+          <Route path="live" element={<LiveStreamsPage />} />
           {/* Canlı çok oyunculu XOX */}
           <Route path="play/tic/:gameId" element={<OnlineTicPage />} />
+          {/* Canlı çok oyunculu Amiral Battı */}
+          <Route path="play/battleship/:gameId" element={<OnlineBattleshipPage />} />
           {/* Co-op hikâye macerası (3D) */}
           <Route
             path="games/coop"
@@ -73,6 +88,8 @@ export default function App() {
               </Suspense>
             }
           />
+          <Route path="games/cards/deck" element={<DeckBuilderPage />} />
+          <Route path="games/cards/collection" element={<CardCollectionPage />} />
         </Routes>
         {/* Uygulama genelinde gelen oyun davetleri + başarım bildirimleri */}
         <GameInviteListener />

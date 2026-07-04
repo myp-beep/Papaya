@@ -266,22 +266,42 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           },
         })
       } else {
-        // Mock bot cevabı
+        // Mock bot — streaming cevap (karakter karakter)
         const t1 = window.setTimeout(() => {
           setTyping((p) => ({ ...p, [threadId]: true }))
           const t2 = window.setTimeout(() => {
             setTyping((p) => ({ ...p, [threadId]: false }))
+            const reply = BOT_REPLIES[Math.floor(Math.random() * BOT_REPLIES.length)]
+            const botMsgId = uid()
             appendMessage(
               threadId,
               peer,
-              {
-                id: uid(),
-                mine: false,
-                text: BOT_REPLIES[Math.floor(Math.random() * BOT_REPLIES.length)],
-                ts: Date.now(),
-              },
+              { id: botMsgId, mine: false, text: '', ts: Date.now(), streaming: true },
               activeThreadRef.current !== threadId,
             )
+            let ci = 0
+            const si = window.setInterval(() => {
+              ci++
+              const partial = reply.slice(0, ci)
+              setThreads((prev) =>
+                prev.map((t) =>
+                  t.id === threadId
+                    ? { ...t, messages: t.messages.map((m) => (m.id === botMsgId ? { ...m, text: partial } : m)) }
+                    : t,
+                ),
+              )
+              if (ci >= reply.length) {
+                window.clearInterval(si)
+                setThreads((prev) =>
+                  prev.map((t) =>
+                    t.id === threadId
+                      ? { ...t, messages: t.messages.map((m) => (m.id === botMsgId ? { ...m, streaming: false } : m)) }
+                      : t,
+                  ),
+                )
+              }
+            }, 35 + Math.random() * 20)
+            timers.current.push(si as unknown as number)
           }, 1100)
           timers.current.push(t2)
         }, 700)

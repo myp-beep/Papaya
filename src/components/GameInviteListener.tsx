@@ -6,6 +6,7 @@ import type { Peer } from '../types'
 
 interface Invite {
   gameId: string
+  game: 'tic' | 'battleship'
   from: string
   hostProfile: { name: string; avatar: string; color: string }
 }
@@ -21,6 +22,7 @@ export default function GameInviteListener() {
       onEvent('game:invite', (p) =>
         setInvite({
           gameId: String(p.gameId),
+          game: (p.game as Invite['game']) ?? 'tic',
           from: String(p.from),
           hostProfile: p.hostProfile as Invite['hostProfile'],
         }),
@@ -31,10 +33,13 @@ export default function GameInviteListener() {
   if (!invite) return null
 
   const peer: Peer = { id: invite.from, ...invite.hostProfile, online: true }
+  const gameLabel = invite.game === 'battleship' ? 'Amiral Battı' : 'XOX'
+  const gameEmoji = invite.game === 'battleship' ? '⚓' : '⭕'
+  const gameRoute = invite.game === 'battleship' ? `/play/battleship/${invite.gameId}` : `/play/tic/${invite.gameId}`
 
   const accept = () => {
     sendEvent('game:accept', { to: invite.from, gameId: invite.gameId })
-    navigate(`/play/tic/${invite.gameId}`, { state: { gameId: invite.gameId, peer, role: 'guest' } })
+    navigate(gameRoute, { state: { gameId: invite.gameId, peer, role: 'guest' } })
     setInvite(null)
   }
 
@@ -45,9 +50,11 @@ export default function GameInviteListener() {
           <Avatar emoji={peer.avatar} color={peer.color} size={48} online />
           <div className="flex-1">
             <div className="font-bold text-white">{peer.name}</div>
-            <div className="text-sm text-white/60">seni ⭕ XOX'a davet ediyor</div>
+            <div className="text-sm text-white/60">
+              seni {gameEmoji} {gameLabel}'a davet ediyor
+            </div>
           </div>
-          <span className="text-3xl">🎮</span>
+          <span className="text-3xl">{gameEmoji}</span>
         </div>
         <div className="mt-4 flex gap-2">
           <button

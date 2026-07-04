@@ -4,8 +4,9 @@ import type { CardDef, CardGameState, BoardCreature, PlayerState, GamePhase, Her
 import { getCard, loadDeck, STARTER_DECK, allCards, TOKEN_CARDS } from '../data/cardStore'
 import { pickBotPlay, pickBotAttack } from '../data/cardAi'
 import { getHero, getHeroPowerTargetMode } from '../data/cardHeroes'
-import { loadCollection, saveCollection, recordWin, recordLoss, addHeroXp } from '../data/cardProgression'
+import { loadCollection, saveCollection, recordWin, recordLoss, addHeroXp, saveMatch } from '../data/cardProgression'
 import { sfx } from '../lib/sound'
+import { recordGame } from '../data/statsStore'
 import CardHand from '../components/cards/CardHand'
 import CardBoard from '../components/cards/CardBoard'
 import HeroSelect from '../components/cards/HeroSelect'
@@ -191,14 +192,29 @@ export default function CardBattlePage({ initialHero, botLevel: forcedLevel }: B
   useEffect(() => {
     if (game?.winner) {
       const c = loadCollection()
+      const turns = Math.floor(game.turn / 2) + 1
       if (game.winner === 0) {
-        const nc = addHeroXp(recordWin(c), game.player.hero, 50)
+        const nc = addHeroXp(recordWin(c, game.player.hero), game.player.hero, 50)
         saveCollection(nc)
+        saveMatch({ won: true, hero: game.player.hero, botLevel: game.botDifficulty, turns, date: Date.now() })
         sfx.win()
+
+        const achievements: string[] = ['card-first-win']
+        if (nc.wins >= 10) achievements.push('card-10-wins')
+        if (nc.wins >= 50) achievements.push('card-50-wins')
+        if (game.botDifficulty === 'hard') achievements.push('card-hard-bot')
+        const allHeroes = ['warrior', 'mage', 'druid', 'shadow']
+        if (allHeroes.every(h => (nc.heroWins[h] || 0) > 0)) achievements.push('card-all-heroes')
+        const allCardIds = allCards.map(c => c.id)
+        if (allCardIds.every(id => (nc.owned[id] || 0) > 0)) achievements.push('card-full-collection')
+
+        recordGame({ won: true, xp: 50, achievementIds: achievements })
       } else {
         const nc = addHeroXp(recordLoss(c), game.player.hero, 15)
         saveCollection(nc)
+        saveMatch({ won: false, hero: game.player.hero, botLevel: game.botDifficulty, turns, date: Date.now() })
         sfx.fail()
+        recordGame({ won: false, xp: 15 })
       }
     }
   }, [game?.winner, game?.player.hero])

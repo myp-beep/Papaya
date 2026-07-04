@@ -9,11 +9,11 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import type { FriendRequest, FriendRequestStatus, Peer } from '../types'
+import type { FriendRequest, Peer } from '../types'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
 import { useProfile } from './profileStore'
 import { USERS } from './mockData'
-import { getClientId } from '../lib/identity'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 
 const FRIENDS_KEY = 'papaya.friends.v1'
 const REQUESTS_KEY = 'papaya.requests.v1'
@@ -67,7 +67,7 @@ const FriendsContext = createContext<FriendsContextValue | null>(null)
 export function FriendsProvider({ children }: { children: ReactNode }) {
   const { profile, userId: myId } = useProfile()
   const realtime = isSupabaseConfigured
-  const channelRef = useRef<ReturnType<typeof supabase!['channel']> | null>(null)
+  const channelRef = useRef<RealtimeChannel | null>(null)
 
   const [friends, setFriends] = useState<Peer[]>(loadFriends)
   const [requests, setRequests] = useState<FriendRequest[]>(loadRequests)

@@ -68,6 +68,23 @@ export const allCards: CardDef[] = [
   { id: 'w3', name: 'Efsanevi Kılıç', emoji: '⚔️', cost: 5, type: 'weapon', description: '+5 saldırı verir.', effect: { buffAttack: 5 }, rarity: 'epic', faction: 'holy' },
   { id: 'w4', name: 'Kutsal Mızrak', emoji: '🔱', cost: 4, type: 'weapon', description: '+4 atak. Oynarken 1 kart çek.', effect: { buffAttack: 4, draw: 1 }, rarity: 'epic', faction: 'holy' },
   { id: 'w5', name: 'Gölge Hançer', emoji: '🗡️', cost: 1, type: 'weapon', description: '+1 atak, can emer.', effect: { buffAttack: 1, stealLife: true }, rarity: 'rare', faction: 'shadow' },
+
+  // --- YENİ 10 KART (toplam 60) ---
+  // NATURE
+  { id: 'c38', name: 'Filiz Büyücüsü', emoji: '🌿', cost: 2, type: 'creature', attack: 1, hp: 3, effect: { buffHp: 1, heal: 1 }, description: 'Oynarken tüm müttefiklere +1 can.', rarity: 'rare', faction: 'nature', keywords: ['İyileştirme'] },
+  { id: 'c39', name: 'Kurt Adam', emoji: '🐺', cost: 5, type: 'creature', attack: 4, hp: 4, effect: { frenzy: true, charge: true }, description: 'Hücum + Çılgınlık.', rarity: 'epic', faction: 'nature', keywords: ['Hücum', 'Çılgınlık'] },
+  // FIRE
+  { id: 'c40', name: 'İskelet Savaşçı', emoji: '💀', cost: 2, type: 'creature', attack: 2, hp: 2, effect: { deathrattle: { effect: { damage: 1 } } }, description: 'Ölünce rakibe 1 hasar.', rarity: 'common', faction: 'fire', keywords: ['Ölüm Çığlığı'] },
+  { id: 'c41', name: 'Alev Fırtınası', emoji: '🌪️', cost: 6, type: 'spell', description: 'Tüm yaratıklara 3 hasar.', effect: { dealToAll: 3 }, rarity: 'epic', faction: 'fire' },
+  // ICE
+  { id: 'c42', name: 'Buz Muhafızı', emoji: '🧊', cost: 3, type: 'creature', attack: 1, hp: 5, effect: { taunt: true, shield: 1 }, description: 'Kalkanlı taunt.', rarity: 'rare', faction: 'ice', keywords: ['Taunt', 'Kalkan'] },
+  { id: 'c43', name: 'Kardan Adam', emoji: '⛄', cost: 4, type: 'creature', attack: 3, hp: 4, effect: { freeze: true, poison: true }, description: 'Dondurur ve zehirler.', rarity: 'epic', faction: 'ice', keywords: ['Don', 'Zehir'] },
+  // SHADOW
+  { id: 'c44', name: 'Gölge Tüccarı', emoji: '🧳', cost: 3, type: 'creature', attack: 2, hp: 3, effect: { addToHand: 's4', draw: 1 }, description: 'Oynarken Bilgelik kartı ekler ve 1 çeker.', rarity: 'rare', faction: 'shadow' },
+  { id: 'c45', name: 'Karanlık Ritüel', emoji: '🔮', cost: 2, type: 'spell', description: '2 kart çek, 2 hasar al.', effect: { draw: 2, damage: 2 }, rarity: 'common', faction: 'shadow' },
+  // HOLY
+  { id: 'c46', name: 'Işık Topu', emoji: '☀️', cost: 1, type: 'spell', description: '2 hasar ver, 1 can yenile.', effect: { damage: 2, heal: 1 }, rarity: 'common', faction: 'holy' },
+  { id: 'c47', name: 'Kutsal Şövalye', emoji: '🦄', cost: 7, type: 'creature', attack: 6, hp: 6, effect: { shield: 2, taunt: true, heal: 3 }, description: 'Kalkanlı, tauntlu, oynarken 3 can verir.', rarity: 'legendary', faction: 'holy', keywords: ['Kalkan', 'Taunt'] },
 ]
 
 export const TOKEN_CARDS: CardDef[] = [
@@ -97,7 +114,7 @@ export function loadCollection(): CardCollection {
   } catch { }
   const owned: Record<string, number> = {}
   STARTER_DECK.forEach((id) => { owned[id] = (owned[id] || 0) + 1 })
-  return { owned, selectedDeck: [...STARTER_DECK], coins: 0, dust: 0, wins: 0, losses: 0, streak: 0, lastDaily: 0, heroXp: {} }
+  return { owned, selectedDeck: [...STARTER_DECK], coins: 200, dust: 0, wins: 0, losses: 0, streak: 0, lastDaily: 0, heroXp: {}, heroWins: {} }
 }
 
 export function saveCollection(c: CardCollection) {

@@ -2,13 +2,18 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Avatar from '../components/Avatar'
 import EmptyState from '../components/EmptyState'
+import LiveStreamCard from '../components/LiveStreamCard'
 import { useChat } from '../data/chatStore'
+import { useLive } from '../data/liveStore'
 import { shortTime } from '../utils/time'
 
 export default function ChatListPage() {
   const { threads, realtime, onlineUsers } = useChat()
+  const { rooms } = useLive()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
+
+  const activeRooms = rooms.filter((r) => r.status === 'live')
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -23,13 +28,22 @@ export default function ChatListPage() {
           <h1 className="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-white">
             <span className="text-2xl">🍈</span> Papaya
           </h1>
-          <button
-            onClick={() => navigate('/new-chat')}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-ink-700 text-lg text-white/70 transition hover:bg-ink-600"
-            title="Yeni sohbet"
-          >
-            ＋
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/live/new')}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-red-900/50 text-lg text-red-400 transition hover:bg-red-900"
+              title="Canlı yayın başlat"
+            >
+              📡
+            </button>
+            <button
+              onClick={() => navigate('/new-chat')}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-ink-700 text-lg text-white/70 transition hover:bg-ink-600"
+              title="Yeni sohbet"
+            >
+              ＋
+            </button>
+          </div>
         </div>
         {realtime && (
           <p className="mt-1 flex items-center gap-1.5 text-xs text-emerald-400">
@@ -46,6 +60,35 @@ export default function ChatListPage() {
           className="mt-3 w-full rounded-xl border border-ink-600 bg-ink-800 px-4 py-2.5 text-sm text-white placeholder:text-white/35 outline-none transition focus:border-papaya-500"
         />
       </header>
+
+      {/* Canlı Yayınlar bölümü */}
+      {activeRooms.length > 0 && (
+        <section className="px-3 pb-2">
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-red-400">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
+              Canlı Yayınlar
+            </h2>
+            {activeRooms.length > 3 && (
+              <button
+                onClick={() => navigate('/live')}
+                className="text-[11px] font-medium text-white/40 transition hover:text-white/70"
+              >
+                Tümünü gör ({activeRooms.length})
+              </button>
+            )}
+          </div>
+          <div className="flex flex-col gap-2">
+            {activeRooms.slice(0, 3).map((room) => (
+              <LiveStreamCard
+                key={room.id}
+                room={room}
+                onJoin={(id) => navigate(`/live/${id}`)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       {filtered.length === 0 ? (
         <EmptyState

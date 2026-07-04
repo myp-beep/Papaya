@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { allCards as ALL_CARDS, loadCollection, saveCollection } from '../data/cardStore'
-import { openPack, disenchantValue, addCard, addCoins, addDust, canCraft } from '../data/cardProgression'
+import { openPack, disenchantValue, addCard, addCoins, addDust, canCraft, dailyReward, loadMatches } from '../data/cardProgression'
 import { CardDef, Rarity } from '../types'
 import { sfx } from '../lib/sound'
 
@@ -8,18 +9,33 @@ const RARITY_COLORS: Record<Rarity, string> = { common: 'text-gray-300', rare: '
 const RARITY_BG: Record<Rarity, string> = { common: 'from-gray-600 to-gray-700', rare: 'from-blue-700 to-blue-900', epic: 'from-purple-700 to-purple-900', legendary: 'from-yellow-600 to-orange-800' }
 
 export default function CardCollectionPage() {
+  const navigate = useNavigate()
   const [collection, setCollection] = useState(() => loadCollection())
   const [packResult, setPackResult] = useState<CardDef[] | null>(null)
   const [packReveal, setPackReveal] = useState(-1)
   const [showCraft, setShowCraft] = useState(false)
+  const [showMatches, setShowMatches] = useState(false)
+  const [dailyDone, setDailyDone] = useState(() => {
+    const today = Math.floor(Date.now() / 86400000)
+    return collection.lastDaily === today
+  })
+
+  const matches = loadMatches()
+
+  function handleDaily() {
+    const result = dailyReward(collection)
+    if (!result) return
+    setCollection(result)
+    saveCollection(result)
+    setDailyDone(true)
+    sfx.achievement()
+  }
 
   function handleOpenPack() {
     if (collection.coins < 100) return
     let c = addCoins(collection, -100)
     const result = openPack()
-    result.cards.forEach(card => {
-      c = addCard(c, card.id)
-    })
+    result.cards.forEach(card => { c = addCard(c, card.id) })
     setCollection(c)
     saveCollection(c)
     setPackResult(result.cards)
@@ -72,7 +88,10 @@ export default function CardCollectionPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-indigo-950 to-gray-900 p-4">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-          <h1 className="text-2xl font-bold text-white">💎 Koleksiyon</h1>
+          <div className="flex items-center gap-2">
+            <button onClick={() => navigate('/games')} className="text-white/60 hover:text-white text-lg">‹</button>
+            <h1 className="text-2xl font-bold text-white">💎 Koleksiyon</h1>
+          </div>
           <div className="flex items-center gap-3">
             <span className="text-yellow-400">🪙 {collection.coins}</span>
             <span className="text-purple-400">💎 {collection.dust}</span>
@@ -83,31 +102,59 @@ export default function CardCollectionPage() {
           </div>
         </div>
 
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-2 mb-4 flex-wrap">
           <button
             onClick={handleOpenPack}
             disabled={collection.coins < 100}
             className={`px-4 py-2 rounded-xl font-bold text-sm transition flex items-center gap-2 ${
-              collection.coins >= 100
-                ? 'bg-yellow-600 hover:bg-yellow-500 text-white'
-                : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+              collection.coins >= 100 ? 'bg-yellow-600 hover:bg-yellow-500 text-white' : 'bg-gray-700 text-gray-400 cursor-not-allowed'
             }`}
           >
             📦 Paket Aç (100 🪙)
           </button>
+          <button
+            onClick={handleDaily}
+            disabled={dailyDone}
+            className={`px-4 py-2 rounded-xl font-bold text-sm transition flex items-center gap-2 ${
+              dailyDone ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-500 text-white'
+            }`}
+          >
+            🎁 {dailyDone ? 'Günlük alındı ✓' : 'Günlük Ödül (50 🪙)'}
+          </button>
+          <button
+            onClick={() => setShowMatches(!showMatches)}
+            className={`px-4 py-2 rounded-xl font-bold text-sm transition flex items-center gap-2 ${
+              showMatches ? 'bg-blue-600 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'
+            }`}
+          >
+            📊 Maçlar
+          </button>
         </div>
+
+        {showMatches && (
+          <div className="mb-4 bg-white/5 rounded-xl p-3 border border-white/10 max-h-64 overflow-y-auto">
+            <h3 className="text-white font-bold text-sm mb-2">📊 Son Maçlar</h3>
+            {matches.length === 0 && <div className="text-white/40 text-xs">Henüz maç yok.</div>}
+            {matches.map((m, i) => (
+              <div key={i} className="flex items-center gap-2 text-xs py-1 border-b border-white/5 last:border-0">
+                <span>{m.won ? '✅' : '❌'}</span>
+                <span className={m.won ? 'text-green-400' : 'text-red-400'}>{m.won ? 'Zafer' : 'Mağlubiyet'}</span>
+                <span className="text-white/60">{m.hero === 'warrior' ? '⚔️' : m.hero === 'mage' ? '🔮' : m.hero === 'druid' ? '🌿' : '👻'}</span>
+                <span className="text-white/40">
+                  {m.botLevel === 'easy' ? '🟢' : m.botLevel === 'normal' ? '🟡' : '🔴'} {m.turns} tur
+                </span>
+                <span className="text-white/30 ml-auto">{new Date(m.date).toLocaleDateString('tr-TR')}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {packResult && (
           <div className="mb-6 bg-white/5 rounded-xl p-4 border border-white/10">
             <h3 className="text-white font-bold mb-3">🎁 Paket Sonucu</h3>
             <div className="grid grid-cols-5 gap-2">
               {packResult.map((card, i) => (
-                <div
-                  key={i}
-                  className={`bg-gradient-to-br ${RARITY_BG[card.rarity]} rounded-lg p-2 text-center transition-all ${
-                    i <= packReveal ? 'opacity-100 scale-100' : 'opacity-0 scale-50'
-                  }`}
-                >
+                <div key={i} className={`bg-gradient-to-br ${RARITY_BG[card.rarity]} rounded-lg p-2 text-center transition-all ${i <= packReveal ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}>
                   <div className="text-2xl">{card.emoji}</div>
                   <div className={`text-xs font-bold ${RARITY_COLORS[card.rarity]} truncate`}>{card.name}</div>
                   <div className="text-white/40 text-[10px]">{card.rarity}</div>
@@ -128,18 +175,8 @@ export default function CardCollectionPage() {
                   <div className="text-2xl text-center">{card.emoji}</div>
                   <div className={`text-xs font-bold text-center ${RARITY_COLORS[card.rarity]} truncate`}>{card.name}</div>
                   <div className="text-white/40 text-[10px] text-center">{card.rarity}</div>
-                  <div className="text-white/60 text-xs text-center mt-1">
-                    {owned > 0 ? `x${owned}` : 'Sahip değil'}
-                  </div>
-                  <button
-                    onClick={() => handleCraft(card.id)}
-                    disabled={!canAfford}
-                    className={`w-full mt-1 py-1 rounded text-xs font-bold transition ${
-                      canAfford
-                        ? 'bg-purple-600 hover:bg-purple-500 text-white'
-                        : 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                    }`}
-                  >
+                  <div className="text-white/60 text-xs text-center mt-1">{owned > 0 ? `x${owned}` : 'Sahip değil'}</div>
+                  <button onClick={() => handleCraft(card.id)} disabled={!canAfford} className={`w-full mt-1 py-1 rounded text-xs font-bold transition ${canAfford ? 'bg-purple-600 hover:bg-purple-500 text-white' : 'bg-gray-700 text-gray-500 cursor-not-allowed'}`}>
                     💎 {cost}
                   </button>
                 </div>
@@ -156,19 +193,14 @@ export default function CardCollectionPage() {
                   <div className="text-gray-500 text-xs text-center">???</div>
                 </div>
               )
-              const canDisenchant = owned > 1
               return (
                 <div key={card.id} className={`bg-gradient-to-br ${RARITY_BG[card.rarity]} rounded-lg p-2 border border-white/10 relative group`}>
                   <div className="text-2xl text-center">{card.emoji}</div>
                   <div className={`text-xs font-bold text-center ${RARITY_COLORS[card.rarity]} truncate`}>{card.name}</div>
                   <div className="text-white/40 text-[10px] text-center">{card.rarity}</div>
                   <div className="text-white/60 text-xs text-center">x{owned}</div>
-                  {canDisenchant && (
-                    <button
-                      onClick={() => handleDisenchant(card.id)}
-                      className="absolute top-1 right-1 text-xs bg-red-600/80 hover:bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                      title="Tozlaştır"
-                    >
+                  {owned > 1 && (
+                    <button onClick={() => handleDisenchant(card.id)} className="absolute top-1 right-1 text-xs bg-red-600/80 hover:bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition" title="Tozlaştır">
                       -
                     </button>
                   )}

@@ -2,18 +2,28 @@ import { CardCollection, CardDef, CardPackResult, Rarity } from '../types'
 import { allCards } from './cardStore'
 
 const STORAGE_KEY = 'papaya_card_collection'
+const MATCH_KEY = 'papaya_card_matches'
+
+export interface MatchRecord {
+  won: boolean
+  hero: string
+  botLevel: string
+  turns: number
+  date: number
+}
 
 export function defaultCollection(): CardCollection {
   return {
     owned: {},
     selectedDeck: [],
-    coins: 0,
+    coins: 200,
     dust: 0,
     wins: 0,
     losses: 0,
     streak: 0,
     lastDaily: 0,
     heroXp: {},
+    heroWins: {},
   }
 }
 
@@ -77,12 +87,14 @@ export function openPack(): CardPackResult {
   return { cards }
 }
 
-export function recordWin(c: CardCollection): CardCollection {
+export function recordWin(c: CardCollection, heroId?: string): CardCollection {
+  const heroWins = heroId ? { ...c.heroWins, [heroId]: (c.heroWins[heroId] || 0) + 1 } : c.heroWins
   return {
     ...c,
     coins: c.coins + 15,
     wins: c.wins + 1,
     streak: c.streak + 1,
+    heroWins,
   }
 }
 
@@ -109,4 +121,19 @@ export function addHeroXp(c: CardCollection, heroId: string, amount: number): Ca
 
 export function heroLevel(xp: number): number {
   return Math.min(10, Math.floor(xp / 100) + 1)
+}
+
+export function loadMatches(): MatchRecord[] {
+  try {
+    const raw = localStorage.getItem(MATCH_KEY)
+    if (raw) return JSON.parse(raw) as MatchRecord[]
+  } catch {}
+  return []
+}
+
+export function saveMatch(m: MatchRecord) {
+  const matches = loadMatches()
+  matches.unshift(m)
+  if (matches.length > 50) matches.length = 50
+  localStorage.setItem(MATCH_KEY, JSON.stringify(matches))
 }

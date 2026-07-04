@@ -8,7 +8,7 @@ import { relativeTime } from '../utils/time'
 import { haptic } from '../lib/haptics'
 
 export default function DiscoverPage() {
-  const { posts, toggleLike, addPost } = useFeed()
+  const { posts, toggleLike, addPost, authorCache } = useFeed()
   const { profile } = useProfile()
   const { startChat } = useChat()
   const navigate = useNavigate()
@@ -16,7 +16,7 @@ export default function DiscoverPage() {
 
   const openChatWith = (authorId: string) => {
     if (authorId === 'me') return
-    const a = resolveAuthor(authorId, profile)
+    const a = resolveAuthor(authorId, profile, authorCache)
     const id = startChat({ id: authorId, name: a.name, avatar: a.avatar, color: a.color, online: true })
     navigate(`/chat/${id}`)
   }
@@ -59,7 +59,7 @@ export default function DiscoverPage() {
       {/* Akış */}
       <div className="mt-4 space-y-3 px-5 pb-6">
         {posts.map((p) => {
-          const author = resolveAuthor(p.authorId, profile)
+          const author = resolveAuthor(p.authorId, profile, authorCache)
           return (
             <article key={p.id} className="glass rounded-2xl p-4 shadow-card animate-slide-up">
               <div className="flex items-center gap-3">

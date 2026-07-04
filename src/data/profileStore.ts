@@ -73,10 +73,15 @@ export function useProfile() {
 }
 
 /** Bir yazar id'sini görüntüleme bilgisine çevirir ('me' -> güncel profil). */
-export function resolveAuthor(id: string, profile: Profile) {
+export function resolveAuthor(
+  id: string,
+  profile: Profile,
+  authorCache?: Record<string, { name: string; avatar: string; color: string }>,
+) {
   if (id === 'me') return { name: profile.name, avatar: profile.avatar, color: profile.color }
   const u = USERS[id]
-  return u
-    ? { name: u.name, avatar: u.avatar, color: u.color }
-    : { name: 'Bilinmeyen', avatar: '❓', color: '#666' }
+  if (u) return { name: u.name, avatar: u.avatar, color: u.color }
+  const cached = authorCache?.[id]
+  if (cached) return cached
+  return { name: 'Bilinmeyen', avatar: '❓', color: '#666' }
 }

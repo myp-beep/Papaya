@@ -3,9 +3,9 @@
 Tek uygulamada **mesajlaşma, oyun ve sosyal** — hem **web** hem **mobil**.
 WePlay tarzı sosyal bir "süper uygulama" için genişletilebilir bir temel.
 
-> **Durum:** MVP. Şu an **Sohbet/Mesajlaşma modülü çalışıyor** (mock veri +
-> `localStorage` kalıcılığı). Oyun, Keşfet ve Profil sekmeleri tasarımlı
-> placeholder olarak hazır, sonraki sürümlerde işlevsel hale gelecek.
+> **Durum:** MVP. **Sohbet**, **Profil** ve **Oyun** modülleri çalışıyor
+> (mock veri + `localStorage` kalıcılığı). Keşfet ve kart koleksiyonu/deste
+> sayfaları da işlevsel. Gerçek backend bağlantısı (Supabase) opsiyonel.
 
 ## Teknoloji
 
@@ -64,7 +64,7 @@ Capacitor ayarları `capacitor.config.ts` içinde (`webDir: 'dist'`).
 src/
   App.tsx                 # router + telefon çerçevesi kabuğu
   components/             # AppShell, TabBar, Avatar, EmptyState
-  pages/                  # ChatList, ChatRoom (çalışır) + Games/Discover/Profile (placeholder)
+  pages/                  # Chat, Games, Discover, Profile, Kart Koleksiyonu, Deste
   data/                   # mockData (sahte veri) + chatStore (Context + localStorage)
   utils/                  # zaman biçimleme
   types.ts                # User / Conversation / Message tipleri

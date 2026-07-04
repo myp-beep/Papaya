@@ -6,6 +6,9 @@ import App from './App'
 import { ChatProvider } from './data/chatStore'
 import { ProfileProvider } from './data/profileStore'
 import { AuthProvider } from './data/authStore'
+import { FriendsProvider } from './data/friendsStore'
+import { LiveProvider } from './data/liveStore'
+import { FeedProvider } from './data/feedStore'
 
 // PWA: service worker'ı yalnızca üretimde kaydet (offline + kurulabilirlik)
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
@@ -20,7 +23,13 @@ createRoot(document.getElementById('root')!).render(
       <AuthProvider>
         <ProfileProvider>
           <ChatProvider>
-            <App />
+            <FriendsProvider>
+              <LiveProvider>
+                <FeedProvider>
+                  <App />
+                </FeedProvider>
+              </LiveProvider>
+            </FriendsProvider>
           </ChatProvider>
         </ProfileProvider>
       </AuthProvider>

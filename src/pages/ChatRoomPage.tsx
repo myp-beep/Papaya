@@ -114,7 +114,7 @@ export default function ChatRoomPage() {
 
       <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto px-4 py-4">
         {thread.messages.map((m) => (
-          <div key={m.id} className={`flex animate-slide-up ${m.mine ? 'justify-end' : 'justify-start'}`}>
+          <div key={m.id} className={`flex animate-stream-in ${m.mine ? 'justify-end' : 'justify-start'}`}>
             <div
               className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-[15px] leading-snug shadow-md ${
                 m.mine
@@ -122,7 +122,11 @@ export default function ChatRoomPage() {
                   : 'rounded-bl-md border border-white/5 bg-ink-700/80 text-white/90 backdrop-blur'
               }`}
             >
-              <span className="whitespace-pre-wrap break-words">{m.text}</span>
+              {m.streaming ? (
+                <StreamingBubble text={m.text} />
+              ) : (
+                <span className="whitespace-pre-wrap break-words">{m.text}</span>
+              )}
               <span className={`ml-2 inline-block translate-y-0.5 text-[10px] ${m.mine ? 'text-white/70' : 'text-white/40'}`}>
                 {clockTime(m.ts)}
               </span>
@@ -191,4 +195,13 @@ export default function ChatRoomPage() {
 
 function Dot({ delay }: { delay: string }) {
   return <span className="h-2 w-2 animate-bounce rounded-full bg-white/50" style={{ animationDelay: delay }} />
+}
+
+function StreamingBubble({ text }: { text: string }) {
+  return (
+    <span className="whitespace-pre-wrap break-words">
+      {text || <>&nbsp;</>}
+      <span className="stream-cursor" />
+    </span>
+  )
 }

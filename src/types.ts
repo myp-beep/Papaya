@@ -46,6 +46,28 @@ export interface ChatMessage {
   mine: boolean
   text: string
   ts: number
+  streaming?: boolean
+}
+
+export interface LiveRoom {
+  id: string
+  hostId: string
+  hostName: string
+  hostAvatar: string
+  hostColor: string
+  title: string
+  status: 'live' | 'ended'
+  viewerCount: number
+  startedAt: number
+}
+
+export interface LiveMessage {
+  id: string
+  senderId: string
+  senderName: string
+  senderAvatar: string
+  text: string
+  ts: number
 }
 
 export interface ChatThread {
@@ -262,6 +284,7 @@ export interface CardCollection {
   streak: number
   lastDaily: number
   heroXp: Record<string, number>
+  heroWins: Record<string, number>
 }
 
 export interface CardPackResult {

@@ -286,6 +286,54 @@ body {
   animation: slideUp 0.3s ease-out;
 }
 
+/* Stream / typewriter efekti */
+@keyframes typewriter {
+  from { width: 0; }
+  to { width: 100%; }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+@keyframes streamFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-stream-in {
+  animation: streamFadeIn 0.25s ease-out both;
+}
+.animate-typewriter {
+  overflow: hidden;
+  white-space: pre-wrap;
+  animation: typewriter 0.01s steps(1) both;
+}
+.stream-cursor::after {
+  content: '|';
+  display: inline;
+  animation: blink 0.7s step-end infinite;
+  color: rgba(255,255,255,0.6);
+  margin-left: 1px;
+  font-weight: 300;
+}
+
+/* Canlı yayın badge parıltısı */
+@keyframes livePulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(239, 68, 68, 0.5); }
+  50% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.9); }
+}
+.animate-live-pulse {
+  animation: livePulse 1.5s ease-in-out infinite;
+}
+
+/* Yayın mesajı girişi */
+@keyframes messageGlow {
+  from { border-color: rgba(249, 88, 22, 0.4); }
+  to { border-color: transparent; }
+}
+.animate-message-glow {
+  animation: messageGlow 2s ease-out forwards;
+}
+
 /* Kart savaşı scrollbar */
 .scrollbar-thin::-webkit-scrollbar {
   height: 4px;

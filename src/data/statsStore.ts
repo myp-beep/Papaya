@@ -18,6 +18,12 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'flawless-fleet', name: 'Kusursuz Donanma', emoji: '🎖️', desc: 'Amiral Battı’yı tek gemi kaybetmeden kazan' },
   { id: 'quest-done', name: 'Krallığın Kahramanı', emoji: '🌅', desc: 'Papaya Krallığı hikâyesini bitir' },
   { id: 'level-5', name: 'Oyun Kurdu', emoji: '🔥', desc: '5. seviyeye ulaş' },
+  { id: 'card-first-win', name: 'Kart Ustası', emoji: '🎴', desc: 'Kart Savaşı\'nı ilk kez kazan' },
+  { id: 'card-10-wins', name: 'Kart Koleksiyoncusu', emoji: '🃏', desc: 'Kart Savaşı\'nda 10 galibiyet' },
+  { id: 'card-50-wins', name: 'Efsanevi Oyuncu', emoji: '👑', desc: 'Kart Savaşı\'nda 50 galibiyet' },
+  { id: 'card-all-heroes', name: 'Kahramanlar Meclisi', emoji: '⚔️', desc: 'Tüm kahramanlarla en az 1 galibiyet' },
+  { id: 'card-hard-bot', name: 'Kumandan Katili', emoji: '🔴', desc: 'Zor botu yen (Kumandan seviyesi)' },
+  { id: 'card-full-collection', name: 'Kartograf', emoji: '🗺️', desc: 'Tüm kartları topla' },
 ]
 
 export interface Stats {

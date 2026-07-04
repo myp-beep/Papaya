@@ -13,13 +13,16 @@ import Effects from '../components/Effects'
 import { Avatar3D, type AnimState } from '../components/Character'
 import { tex } from '../lib/textures'
 import Enemy, { type EnemyHandle } from '../components/Enemy'
+import BossEnemy, { type BossHandle } from '../components/BossEnemy'
 import QuestPanel from '../components/QuestPanel'
 import FishingMinigame from '../components/FishingMinigame'
 import QuickChat from '../components/QuickChat'
 import EmoteWheel from '../components/EmoteWheel'
 import Minimap from '../components/Minimap'
 import PingMarker from '../components/PingMarker'
+import InventoryPanel from '../components/InventoryPanel'
 import { startAmbient, stopAmbient, sfx } from '../lib/sound'
+import { saveKingdom, loadKingdom, clearKingdom } from '../data/questStore'
 import type { EnemyDef, Quest } from '../types'
 
 interface RemoteInfo {
@@ -99,7 +102,7 @@ export function chapterOf(stage: number): number {
   return 4
 }
 
-function dialogueFor(npcId: string, stage: number, collected: number, defeated: string[], _fishCount: number): { lines: string[]; action?: number } {
+function dialogueFor(npcId: string, stage: number, collected: number, defeated: string[], _fishCount: number, bossPhase?: number): { lines: string[]; action?: number } {
   if (npcId === 'elder') {
     if (stage === 0)
       return {
@@ -150,26 +153,25 @@ function dialogueFor(npcId: string, stage: number, collected: number, defeated: 
   }
 
   if (npcId === 'shadow') {
-    if (stage === 4)
+    if (stage === 4 && collected >= NEED)
       return {
         lines: [
           '...Demek geldin. Beş ışığı da taşıyorsun. 🌑',
-          'Ben Het. Bir zamanlar bu krallığı kardeşim Pofu ile korurdum.',
-          'Büyük Papaya sönmeye başladığında herkes paniğe kapıldı. Ben de...',
-          'Onu kimse söndürmesin diye sakladım. Beş ışığı ben sakladım — korumak için!',
-          'Ama korumak sandığım şey, krallığı karanlığa boğdu. Kendi korkum gölgem oldu.',
-          'Ve gölgeler... çoğaldılar, krallığa yayıldılar. Onları durduramadım.',
-          'Şimdi geri mi almaya geldin? Yoksa beni de mi yargılayacaksın?',
+          'Ama onları bana vermek için savaşman gerekecek!',
+          'Gücümü hisset — karanlık beni yıllarca besledi! ⚔️',
         ],
-        action: 5,
+        action: 4,
       }
-    if (stage === 5)
+    if (stage === 4)
+      return { lines: ['Önce tüm ışıkları topla, sonra yüzleş bana!'] }
+    if (stage === 5 && bossPhase === 2)
       return {
         lines: [
-          'Taşıdığın ışık... çok sıcak. Onu yargı için değil, paylaşmak için getirdin.',
-          'Kardeşim Pofu hâlâ beni bekliyor, öyle mi? Onca yıldan sonra...',
-          'Belki de korkuyu bırakmanın vakti geldi. Ellerini uzat, yolcu.',
-          'Bu ışığı birlikte göğe geri verelim — krallık yeniden doğsun. 🌅',
+          'Dur... Bu ışık... 🥺',
+          'Ben... ben sadece korktum. Krallığı kaybetmekten.',
+          'Kardeşim Pofu gibi güçlü olamadım. O yüzden saklandım.',
+          'Ama sen bana korkmamayı öğrettin. Işığı paylaşmayı.',
+          'Hadi, birlikte göğe geri verelim. 🌅',
         ],
         action: 6,
       }
@@ -178,13 +180,13 @@ function dialogueFor(npcId: string, stage: number, collected: number, defeated: 
   return { lines: ['...'] }
 }
 
-function objectiveText(stage: number, collected: number): string {
+function objectiveText(stage: number, collected: number, bossPhase?: number): string {
   switch (stage) {
     case 0: return '🧙 Bilge Pofu ile konuş'
     case 1: return collected >= NEED ? '🛡️ Bekçi Karpuz\'a dön' : `🍈 Sihirli papayaları topla: ${collected}/${NEED}`
     case 2: return '✨ Işık Taşı\'na dokun'
     case 3: return '🌀 Portala gir'
-    case 4: return '🌑 Gölge Het ile yüzleş'
+    case 4: return bossPhase === 2 ? '💜 Gölge Het\'e umudu göster' : '🌑 Gölge Het\'i yen! ⚔️'
     case 5: return '💜 Gölge Het\'e umudu göster'
     default: return '🌅 Şafak — krallık kurtarıldı!'
   }
@@ -354,6 +356,7 @@ interface LocalProps {
   emoteRef: React.MutableRefObject<AnimState | null>
   attackRef: React.MutableRefObject<boolean>
   playerPosRef: React.MutableRefObject<Vec>
+  disabled?: boolean
   onCollect: (i: number) => void
   onOrb: () => void
   onPortal: () => void
@@ -361,7 +364,7 @@ interface LocalProps {
   sendPos: (x: number, z: number) => void
 }
 
-function LocalPlayer({ color, dirRef, stageRef, collectedRef, npcsRef, emoteRef, attackRef, playerPosRef, onCollect, onOrb, onPortal, onNpc, sendPos }: LocalProps) {
+function LocalPlayer({ color, dirRef, stageRef, collectedRef, npcsRef, emoteRef, attackRef, playerPosRef, disabled, onCollect, onOrb, onPortal, onNpc, sendPos }: LocalProps) {
   const ref = useRef<THREE.Group>(null)
   const pos = useRef(new THREE.Vector3(0, 0, -4))
   const { camera } = useThree()
@@ -371,7 +374,7 @@ function LocalPlayer({ color, dirRef, stageRef, collectedRef, npcsRef, emoteRef,
   const swingRef = useRef(0)
 
   useFrame((_, delta) => {
-    const d = dirRef.current
+    const d = disabled ? { x: 0, z: 0 } : dirRef.current
     const moving = !!(d.x || d.z)
     const len = Math.hypot(d.x, d.z) || 1
     if (moving) {
@@ -441,36 +444,52 @@ export default function CoopQuestPage() {
   const { sendEvent, onEvent, myId } = useChat()
   const { profile } = useProfile()
 
-  const [stage, setStage] = useState(0)
-  const [collectedIds, setCollectedIds] = useState<number[]>([])
+  const saved = useRef(loadKingdom())
+  const [stage, setStage] = useState(() => saved.current?.stage ?? 0)
+  const [collectedIds, setCollectedIds] = useState<number[]>(() => saved.current?.collectedIds ?? [])
   const [remotes, setRemotes] = useState<RemoteInfo[]>([])
   const [dialogue, setDialogue] = useState<{ npcId: string; line: number; lines: string[]; action?: number } | null>(null)
   const [nearNpc, setNearNpc] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
-  const [card, setCard] = useState<Chapter | null>(CHAPTERS[1])
-  const shownChapters = useRef<Set<number>>(new Set([1]))
+  const [card, setCard] = useState<Chapter | null>(() => {
+    const s = saved.current?.stage ?? 0
+    const ch = chapterOf(s)
+    return ch === 1 ? CHAPTERS[1] : null
+  })
+  const shownChapters = useRef<Set<number>>(new Set(saved.current ? [chapterOf(saved.current.stage)] : [1]))
 
-  const [hp, setHp] = useState(5)
+  const [hp, setHp] = useState(() => saved.current?.hp ?? 5)
   const maxHp = 5
   const [invincible, setInvincible] = useState(false)
   const [shake, setShake] = useState(false)
+  const [knockedDown, setKnockedDown] = useState(false)
+  const [nearDownedPlayer, setNearDownedPlayer] = useState(false)
+  const [revivingProgress, setRevivingProgress] = useState(0)
+  const revivingInterval = useRef<number | null>(null)
 
-  const [quests, setQuests] = useState<Quest[]>(QUESTS.map((q) => ({ ...q, objectives: q.objectives.map((o) => ({ ...o })) })))
+  const [quests, setQuests] = useState<Quest[]>(() => {
+    if (saved.current?.quests) return saved.current.quests
+    return QUESTS.map((q) => ({ ...q, objectives: q.objectives.map((o) => ({ ...o })) }))
+  })
   const [currentQuestIndex, setCurrentQuestIndex] = useState(0)
-  const [defeatedEnemies, setDefeatedEnemies] = useState<string[]>([])
-  const [discoveredRegions, setDiscoveredRegions] = useState<string[]>([])
-  const [fishCount, setFishCount] = useState(0)
+  const [defeatedEnemies, setDefeatedEnemies] = useState<string[]>(() => saved.current?.defeatedEnemies ?? [])
+  const [discoveredRegions, setDiscoveredRegions] = useState<string[]>(() => saved.current?.discoveredRegions ?? [])
+  const [fishCount, setFishCount] = useState(() => saved.current?.fishCount ?? 0)
 
   const [showFishing, setShowFishing] = useState(false)
   const [nearFishing, setNearFishing] = useState(false)
   const [showQuickChat, setShowQuickChat] = useState(false)
   const [showEmoteWheel, setShowEmoteWheel] = useState(false)
+  const [showInventory, setShowInventory] = useState(false)
   const [chatLog, setChatLog] = useState<string[]>([])
   const [pings, setPings] = useState<{ x: number; z: number; id: string }[]>([])
   const pingIdRef = useRef(0)
 
   const enemyRefs = useRef<Map<string, EnemyHandle>>(new Map())
   const enemyPositionsRef = useRef<Vec[]>([])
+  const bossRef = useRef<BossHandle | null>(null)
+  const [bossPhase, setBossPhase] = useState(1)
+  const [bossDefeated, setBossDefeated] = useState(false)
   const attackRef = useRef(false)
   const playerPosRef = useRef<Vec>({ x: 0, z: 0 })
 
@@ -482,11 +501,19 @@ export default function CoopQuestPage() {
   const emoteRef = useRef<AnimState | null>(null)
   const me = useMemo(() => ({ color: profile.color, name: profile.name }), [profile])
 
-  const activeNpcs = useMemo(() => (stage >= 4 ? [...NPCS, SHADOW] : NPCS), [stage])
+  const activeNpcs = useMemo(() => {
+    if (stage === 4 && !bossDefeated) return NPCS // shadow is a boss now
+    if (stage >= 4) return [...NPCS, SHADOW]
+    return NPCS
+  }, [stage, bossDefeated])
   const npcsRef = useRef<NpcDef[]>(activeNpcs)
   npcsRef.current = activeNpcs
 
-  const activeEnemies = useMemo(() => (stage >= 1 && stage < 6 ? ENEMIES : []), [stage])
+  const activeEnemies = useMemo(() => {
+    if (stage >= 4 && stage < 6) return [] // boss replaces regular enemies
+    if (stage >= 1 && stage < 4) return ENEMIES
+    return []
+  }, [stage])
 
   const collected = collectedIds.length
   const victory = stage >= 6
@@ -518,11 +545,25 @@ export default function CoopQuestPage() {
     attackRef.current = true
     sfx.tap()
     let hitAny = false
-    for (const [, handle] of enemyRefs.current) {
+
+    // Boss savaşı (stage 4)
+    if (stageRef.current === 4 && bossRef.current) {
+      const bpos = bossRef.current.getPos()
+      const ppos = playerPosRef.current
+      if (dist(bpos, ppos) < 4) {
+        bossRef.current.hit()
+        sendEvent('kingdom:hit', { enemyId: 'boss' })
+        hitAny = true
+      }
+    }
+
+    // Normal düşmanlar
+    for (const [eid, handle] of enemyRefs.current) {
       const epos = handle.getPos()
       const ppos = playerPosRef.current
       if (dist(epos, ppos) < 3) {
         handle.hit()
+        sendEvent('kingdom:hit', { enemyId: eid })
         hitAny = true
       }
     }
@@ -595,6 +636,19 @@ export default function CoopQuestPage() {
       setToast(`😢 ${n} ayrıldı`)
       window.setTimeout(() => setToast(null), 2500)
     })
+    const offDowned = onEvent('kingdom:downed', (p) => {
+      const id = String(p.from)
+      if (id === myId) return
+      setToast(`😵 ${remotesRef.current.get(id)?.name ?? 'Birisi'} yıkıldı!`)
+      window.setTimeout(() => setToast(null), 2500)
+    })
+    const offRevive = onEvent('kingdom:revive', (p) => {
+      const id = String(p.from)
+      if (id === myId) return
+      setToast(`💚 ${remotesRef.current.get(id)?.name ?? 'Birisi'} seni canlandırdı!`)
+      reviveSelf()
+      window.setTimeout(() => setToast(null), 2000)
+    })
     const offHit = onEvent('kingdom:hit', (p) => {
       const enemyId = String(p.enemyId ?? '')
       const handle = enemyRefs.current.get(enemyId)
@@ -639,7 +693,16 @@ export default function CoopQuestPage() {
       for (const [, h] of enemyRefs.current) eps.push(h.getPos())
       enemyPositionsRef.current = eps
     }, 300)
-    return () => { offPos(); offEmote(); offJoin(); offLeave(); offPing(); offChat(); offQuest(); window.clearInterval(iv); window.clearInterval(epIv) }
+    // Yakında yıkık oyuncu var mı kontrol
+    const downedIv = window.setInterval(() => {
+      const me = playerPosRef.current
+      let found = false
+      for (const r of remotesRef.current.values()) {
+        if (r.hp <= 0 && dist(me, r) < 3) { found = true; break }
+      }
+      setNearDownedPlayer(found)
+    }, 500)
+    return () => { offPos(); offEmote(); offJoin(); offLeave(); offDowned(); offRevive(); offHit(); offPing(); offChat(); offQuest(); window.clearInterval(iv); window.clearInterval(epIv); window.clearInterval(downedIv) }
   }, [onEvent, myId])
 
   const sendPos = (x: number, z: number) =>
@@ -735,15 +798,49 @@ export default function CoopQuestPage() {
     else enemyRefs.current.delete(enemyId)
   }, [])
 
+  const setBossRef = useCallback((r: BossHandle | null) => {
+    bossRef.current = r
+  }, [])
+
+  const onBossPhaseChange = useCallback((phase: number) => {
+    setBossPhase(phase)
+    if (phase === 2) {
+      setToast('💜 Gölge Het zayıfladı! Konuş ona…')
+      window.setTimeout(() => setToast(null), 2500)
+      advance(5)
+    }
+  }, [])
+
+  const onBossDefeated = useCallback(() => {
+    setBossDefeated(true)
+    setToast('🌅 Gölge Het yenildi! Krallık kurtuldu!')
+    window.setTimeout(() => setToast(null), 2500)
+    recordGame({ won: true, xp: 80 })
+  }, [])
+
+  // Shadow bolt hasar kontrolü
+  useEffect(() => {
+    if (stage !== 4 || bossPhase !== 2) return
+    const iv = window.setInterval(() => {
+      if (invincible) return
+      // This is handled via boss phase transitioning to dialogue
+    }, 500)
+    return () => clearInterval(iv)
+  }, [stage, bossPhase, invincible])
+
   const onDamagePlayer = useCallback((dmg: number) => {
-    if (invincible) return
+    if (invincible || knockedDown) return
     setHp((h) => {
       const next = h - dmg
       if (next <= 0) {
-        setToast('💀 Hayata döndün!')
-        window.setTimeout(() => setToast(null), 1500)
-        recordGame({ won: false, xp: 5 })
-        return maxHp
+        setKnockedDown(true)
+        setToast('💙 Yıkıldın! Birinin canlandırmasını bekliyorsun…')
+        sendEvent('kingdom:downed', {})
+        window.setTimeout(() => {
+          setToast(null)
+        }, 2500)
+        sfx.fail()
+        return 0
       }
       sfx.hit()
       haptic('heavy')
@@ -752,7 +849,45 @@ export default function CoopQuestPage() {
       window.setTimeout(() => { setInvincible(false); setShake(false) }, 800)
       return next
     })
-  }, [invincible])
+  }, [invincible, knockedDown])
+
+  const reviveSelf = useCallback(() => {
+    setKnockedDown(false)
+    setHp(Math.ceil(maxHp / 2))
+    setInvincible(true)
+    setToast('💚 Canlandırıldın!')
+    window.setTimeout(() => { setInvincible(false); setToast(null) }, 2000)
+    haptic('success')
+  }, [maxHp])
+
+  // Gerçek partner canlandırması (basılı tut)
+  const startRevive = useCallback((remoteId: string) => {
+    if (revivingInterval.current) return
+    setRevivingProgress(0)
+    revivingInterval.current = window.setInterval(() => {
+      setRevivingProgress((p) => {
+        const np = p + 5
+        if (np >= 100) {
+          if (revivingInterval.current) window.clearInterval(revivingInterval.current)
+          revivingInterval.current = null
+          sendEvent('kingdom:revive', { targetId: remoteId })
+          setToast('💚 Canlandırdın!')
+          window.setTimeout(() => setToast(null), 1500)
+          setRevivingProgress(0)
+          return 0
+        }
+        return np
+      })
+    }, 100)
+  }, [sendEvent])
+
+  const cancelRevive = useCallback(() => {
+    if (revivingInterval.current) {
+      window.clearInterval(revivingInterval.current)
+      revivingInterval.current = null
+    }
+    setRevivingProgress(0)
+  }, [])
 
   const onFishCatch = useCallback(() => {
     setFishCount((c) => {
@@ -765,7 +900,7 @@ export default function CoopQuestPage() {
   const tryTalk = () => {
     const npcId = nearNpcRef.current
     if (!npcId) return
-    const d = dialogueFor(npcId, stageRef.current, collectedRef.current.size, defeatedEnemies, fishCount)
+    const d = dialogueFor(npcId, stageRef.current, collectedRef.current.size, defeatedEnemies, fishCount, bossPhase)
     setDialogue({ npcId, line: 0, lines: d.lines, action: d.action })
     haptic('select')
   }
@@ -783,6 +918,7 @@ export default function CoopQuestPage() {
   }
 
   const restart = () => {
+    clearKingdom()
     collectedRef.current = new Set()
     setCollectedIds([])
     stageRef.current = 0
@@ -800,6 +936,7 @@ export default function CoopQuestPage() {
 
   const padRef = useRef<HTMLDivElement>(null)
   const onPad = (e: React.PointerEvent) => {
+    if (knockedDown) return
     const pad = padRef.current
     if (!pad) return
     const r = pad.getBoundingClientRect()
@@ -825,6 +962,19 @@ export default function CoopQuestPage() {
       }
     })
   }, [discoveredRegions, playerPosRef.current])
+
+  // Otomatik kayıt (debounce: her 3 saniyede bir)
+  const saveTimer = useRef<number | null>(null)
+  useEffect(() => {
+    if (saveTimer.current) window.clearTimeout(saveTimer.current)
+    saveTimer.current = window.setTimeout(() => {
+      saveKingdom({
+        stage, collectedIds, defeatedEnemies, discoveredRegions,
+        fishCount, hp, quests,
+      })
+    }, 3000)
+    return () => { if (saveTimer.current) window.clearTimeout(saveTimer.current) }
+  }, [stage, collectedIds, defeatedEnemies, discoveredRegions, fishCount, hp, quests])
 
   // Balık tutma alanı yakınında mı?
   useEffect(() => {
@@ -855,7 +1005,7 @@ export default function CoopQuestPage() {
       {/* HUD */}
       <header className="absolute left-0 right-0 top-0 z-10 flex items-center gap-1.5 px-3 pt-4">
         <button onClick={() => navigate('/games')} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-black/40 text-lg text-white/80 backdrop-blur" aria-label="Geri">‹</button>
-        <div className="glass max-w-[45%] truncate rounded-full px-3 py-1 text-xs font-semibold text-white">{objectiveText(stage, collected)}</div>
+        <div className="glass max-w-[45%] truncate rounded-full px-3 py-1 text-xs font-semibold text-white">{objectiveText(stage, collected, bossPhase)}</div>
         {/* Kendi can barı */}
         <div className="glass ml-auto flex items-center gap-1 rounded-full px-2 py-1">
           <span className="text-[10px]">❤️</span>
@@ -880,6 +1030,26 @@ export default function CoopQuestPage() {
           )
         })}
       </header>
+
+      {/* Envanter butonu */}
+      <button
+        onClick={() => setShowInventory(true)}
+        className="glass absolute right-3 top-36 z-10 flex h-9 w-9 items-center justify-center rounded-full text-sm transition active:scale-90"
+        title="Envanter"
+      >
+        🎒
+      </button>
+
+      {/* Envanter paneli */}
+      {showInventory && (
+        <InventoryPanel
+          papayasCollected={collected}
+          papayasNeeded={NEED}
+          fishCaught={fishCount}
+          stage={stage}
+          onClose={() => setShowInventory(false)}
+        />
+      )}
 
       {/* Görev butonu + panel */}
       <QuestPanel quests={quests} currentIndex={currentQuestIndex} onSelect={setCurrentQuestIndex} />
@@ -922,9 +1092,18 @@ export default function CoopQuestPage() {
             ref={setEnemyRef(e.id)}
           />
         ))}
+        {stage === 4 && (
+          <BossEnemy
+            playerPos={playerPosRef.current}
+            onDefeated={onBossDefeated}
+            onPhaseChange={onBossPhaseChange}
+            invincible={invincible}
+            ref={setBossRef}
+          />
+        )}
         <LocalPlayer
           color={me.color} dirRef={dirRef} stageRef={stageRef} collectedRef={collectedRef} npcsRef={npcsRef} emoteRef={emoteRef}
-          attackRef={attackRef} playerPosRef={playerPosRef}
+          attackRef={attackRef} playerPosRef={playerPosRef} disabled={knockedDown}
           onCollect={onCollect} onOrb={onOrb} onPortal={onPortal} onNpc={handleNpc} sendPos={sendPos}
         />
         {remotes.map((r) => <RemotePlayer key={r.id} r={r} />)}
@@ -946,6 +1125,39 @@ export default function CoopQuestPage() {
         </button>
       )}
 
+      {/* Canlandır butonu (contextual — yıkık oyuncu yakınındayken) */}
+      {nearDownedPlayer && !dialogue && !victory && !knockedDown && (
+        <div className="absolute bottom-44 left-1/2 z-20 -translate-x-1/2 flex flex-col items-center animate-pop-in">
+          <button
+            onPointerDown={() => {
+              const target = [...remotes].find((r) => r.hp <= 0)
+              if (target) startRevive(target.id)
+            }}
+            onPointerUp={cancelRevive}
+            onPointerLeave={cancelRevive}
+            className="btn-primary flex items-center gap-2 px-6 py-2.5 text-sm"
+          >
+            ❤️ Canlandır
+          </button>
+          {revivingProgress > 0 && (
+            <div className="mt-1 h-1.5 w-32 overflow-hidden rounded-full bg-ink-700">
+              <div className="h-full rounded-full bg-emerald-400 transition-all" style={{ width: `${revivingProgress}%` }} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Yıkık göstergesi (kendin yıkıksan) */}
+      {knockedDown && !victory && (
+        <div className="absolute bottom-48 left-1/2 z-20 -translate-x-1/2 flex flex-col items-center animate-pop-in">
+          <div className="glass rounded-2xl px-5 py-2.5 text-center">
+            <div className="text-lg">💙</div>
+            <div className="text-sm font-semibold text-white">Canlandırılmayı bekliyor</div>
+            <div className="text-xs text-white/50">Arkadaşın yaklaşıp yardım edebilir</div>
+          </div>
+        </div>
+      )}
+
       {/* Joystick (büyütüldü: 32x32) */}
       <div
         ref={padRef}
@@ -962,7 +1174,7 @@ export default function CoopQuestPage() {
       {!dialogue && !card && !victory && !showFishing && (
         <div className="absolute bottom-6 right-3 z-10 flex flex-col items-center gap-2">
           {/* Saldırı (birincil) */}
-          {!nearNpc && (
+          {(!nearNpc || stage === 4) && (
             <button onClick={tryAttack} className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-papaya-400 to-red-600 text-2xl font-bold text-white shadow-glow transition active:scale-90 shadow-[0_4px_20px_rgba(249,88,22,0.4)]">
               ⚔️
             </button>

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Avatar from '../components/Avatar'
 import { useProfile } from '../data/profileStore'
-import { USERS } from '../data/mockData'
+import { useFriends } from '../data/friendsStore'
 import { getStats } from '../data/statsStore'
 
 const AVATAR_CHOICES = ['😎', '🦊', '🐼', '🐙', '🦄', '🐯', '🐸', '🦁', '🐵', '🐧', '🍈', '🔥']
@@ -22,9 +22,10 @@ export default function ProfilePage() {
   const [avatar, setAvatar] = useState(profile.avatar)
   const [color, setColor] = useState(profile.color)
 
+  const { friends } = useFriends()
   const gameStats = getStats()
   const stats = [
-    { label: 'Arkadaş', value: String(Object.keys(USERS).length) },
+    { label: 'Arkadaş', value: String(friends.length) },
     { label: 'Oyun', value: String(gameStats.plays) },
     { label: 'Rozet', value: String(gameStats.unlocked.length) },
   ]
