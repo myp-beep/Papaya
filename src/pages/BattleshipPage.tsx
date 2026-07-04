@@ -14,6 +14,8 @@ import {
 
 type Phase = 'place' | 'battle' | 'over'
 type Turn = 'player' | 'enemy'
+type BotDiff = 'kolay' | 'normal' | 'zor'
+const BOT_DIFF_KEY = 'papaya.bship.diff.v1'
 
 export default function BattleshipPage() {
   const navigate = useNavigate()
@@ -21,6 +23,7 @@ export default function BattleshipPage() {
   const [phase, setPhase] = useState<Phase>('place')
   const [turn, setTurn] = useState<Turn>('player')
   const [message, setMessage] = useState('Donanmanı yerleştir, sonra ateşe başla!')
+  const [botDiff, setBotDiff] = useState<BotDiff>(() => (localStorage.getItem(BOT_DIFF_KEY) as BotDiff) || 'normal')
 
   const [placing, setPlacing] = useState<Ship[]>([])
   const [orient, setOrient] = useState<Orient>('h')
@@ -42,6 +45,8 @@ export default function BattleshipPage() {
   const botSalvoQueues = useRef<number[][]>([])
   const timers = useRef<number[]>([])
   const wonRef = useRef(false)
+
+  useEffect(() => { localStorage.setItem(BOT_DIFF_KEY, botDiff) }, [botDiff])
 
   useEffect(
     () => () => {
@@ -223,13 +228,36 @@ export default function BattleshipPage() {
     [phase, turn, salvoMode, pendingShots, player.ships, fire],
   )
 
+  const randomEnemyFire = useCallback((): number[] => {
+    const playerBoard = playerRef.current
+    if (!playerBoard) return [-1]
+    const empty: number[] = []
+    for (let i = 0; i < N * N; i++) {
+      if (!playerBoard.shots[i]) empty.push(i)
+    }
+    if (empty.length === 0) return [-1]
+    const shotsCount = salvoMode ? salvoCount(playerBoard.ships) : 1
+    const targets: number[] = []
+    for (let i = 0; i < shotsCount && empty.length > 0; i++) {
+      const idx2 = Math.floor(Math.random() * empty.length)
+      targets.push(empty[idx2])
+      empty.splice(idx2, 1)
+    }
+    return targets
+  }, [])
+
+  const playerRef = useRef<BoardState | null>(null)
+
   // ——— Bot ateşi ———
   const enemyFire = useCallback(() => {
     setPlayer((prev) => {
       if (wonRef.current) return prev
-      const targets = salvoMode
-        ? getBotSalvoTargets(prev, botSalvoQueues.current)
-        : [getBotTarget(prev, botQueue.current)]
+      playerRef.current = prev
+      const targets = botDiff === 'kolay'
+        ? randomEnemyFire()
+        : salvoMode
+          ? getBotSalvoTargets(prev, botSalvoQueues.current)
+          : [getBotTarget(prev, botQueue.current)]
       const validTargets = targets.filter((t) => t >= 0 && prev.shots[t] === undefined)
       if (validTargets.length === 0) {
         setTurn('player')
@@ -288,7 +316,7 @@ export default function BattleshipPage() {
       }
       return nextBoard
     })
-  }, [salvoMode])
+  }, [salvoMode, botDiff, randomEnemyFire])
 
   function getAdjacent(i: number): number[] {
     const [r, c] = rc(i)
@@ -339,6 +367,19 @@ export default function BattleshipPage() {
             <span className="text-sky-300">⚓</span> Amiral Battı
           </h1>
           <p className="text-xs text-sky-200/60">Donanma savaşı · akıllı bota karşı</p>
+        </div>
+        <div className="flex gap-1 rounded-lg border border-sky-400/20 bg-sky-950/40 p-0.5">
+          {(['kolay', 'normal', 'zor'] as BotDiff[]).map((d) => (
+            <button
+              key={d}
+              onClick={() => setBotDiff(d)}
+              className={`rounded-md px-2 py-1 text-[10px] font-bold transition ${
+                botDiff === d ? 'bg-sky-500/30 text-sky-200' : 'text-sky-300/50 hover:text-sky-200/80'
+              }`}
+            >
+              {d === 'kolay' ? '🟢' : d === 'normal' ? '🟡' : '🔴'} {d.toUpperCase()}
+            </button>
+          ))}
         </div>
         <button onClick={newGame} className="btn-ghost border-sky-400/30 bg-sky-500/10 px-3 py-2 text-sm">
           ↻ Yeni

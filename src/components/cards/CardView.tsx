@@ -17,6 +17,13 @@ const RARITY_BORDERS: Record<string, string> = {
   legendary: 'border-yellow-400/50',
 }
 
+const RARITY_GLOWS: Record<string, string> = {
+  legendary: 'shadow-[0_0_16px_rgba(250,204,21,0.3)]',
+  epic: 'shadow-[0_0_12px_rgba(168,85,247,0.25)]',
+  rare: 'shadow-[0_0_8px_rgba(59,130,246,0.2)]',
+  common: '',
+}
+
 const FACTION_GRADIENTS: Record<string, string> = {
   nature: 'from-emerald-900/60 to-emerald-800/30',
   fire: 'from-red-900/60 to-red-800/30',
@@ -40,62 +47,60 @@ export default function CardView({ card, size = 'md', creature, disabled, onClic
       onClick={onClick}
       disabled={disabled}
       className={`${dims} shrink-0 rounded-2xl border-2 text-left transition-all duration-200 ${
-        selected ? '-translate-y-4 scale-105' : ''
+        selected ? '-translate-y-4 scale-105 ring-2 ring-papaya-400/60' : ''
       } ${
-        disabled ? 'brightness-50 grayscale cursor-not-allowed' : 'cursor-pointer hover:-translate-y-2'
+        disabled ? 'brightness-50 grayscale cursor-not-allowed' : 'cursor-pointer hover:-translate-y-2 hover:scale-105'
       } ${
         inactive ? 'opacity-50 grayscale' : ''
-      } ${RARITY_BORDERS[card.rarity]} bg-gradient-to-b ${FACTION_GRADIENTS[card.faction || 'nature']} backdrop-blur shadow-lg relative overflow-hidden`}
+      } ${RARITY_BORDERS[card.rarity]} ${RARITY_GLOWS[card.rarity]} bg-gradient-to-b ${FACTION_GRADIENTS[card.faction || 'nature']} backdrop-blur shadow-lg relative overflow-hidden`}
     >
       {card.rarity === 'legendary' && (
-        <div className="absolute -inset-1 bg-gradient-to-br from-yellow-400/20 to-orange-500/20 rounded-2xl blur-xl pointer-events-none" />
+        <div className="absolute -inset-1 bg-gradient-to-br from-yellow-400/25 to-orange-500/20 rounded-2xl blur-xl pointer-events-none animate-pulse" />
+      )}
+      {card.rarity === 'epic' && (
+        <div className="absolute -inset-1 bg-gradient-to-br from-purple-500/20 to-pink-500/10 rounded-2xl blur-lg pointer-events-none" />
       )}
       <div className={`relative ${pad} flex flex-col gap-1`}>
-        {/* Maliyet */}
         <div className="flex items-center justify-between">
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ink-900/80 text-[10px] font-bold text-papaya-400 shadow-sm">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ink-900/80 text-[10px] font-bold text-papaya-400 shadow-sm ring-1 ring-papaya-500/30">
             {card.cost}
           </span>
-          <span className="text-[10px] opacity-60">{card.rarity === 'legendary' ? '🌟' : card.rarity === 'epic' ? '💎' : ''}</span>
+          <span className="text-[10px] opacity-60">
+            {card.rarity === 'legendary' ? '🌟' : card.rarity === 'epic' ? '💎' : card.rarity === 'rare' ? '🔷' : ''}
+          </span>
         </div>
 
-        {/* Emoji */}
         <div className={`flex items-center justify-center ${emojiSize}`}>
           {card.emoji}
         </div>
 
-        {/* İsim */}
         <div className={`${textSize} font-semibold text-white leading-tight text-center truncate`}>
           {card.name}
         </div>
 
-        {/* Açıklama */}
         <div className={`${textSize === 'text-[10px]' ? 'text-[8px]' : 'text-[10px]'} text-white/50 text-center leading-tight`}>
           {card.description}
         </div>
 
-        {/* Yaratık gücü */}
         {isCreature && (
           <div className="mt-auto flex items-center justify-between">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500/30 text-[10px] font-bold text-red-300">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500/30 text-[10px] font-bold text-red-300 ring-1 ring-red-500/30">
               {creature?.attack ?? card.attack}
             </span>
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-green-500/30 text-[10px] font-bold text-green-300">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-green-500/30 text-[10px] font-bold text-green-300 ring-1 ring-green-500/30">
               {creature?.hp ?? card.hp}
             </span>
           </div>
         )}
 
-        {/* Silah */}
         {isWeapon && card.effect?.buffAttack && (
           <div className="text-center">
-            <span className="rounded-full bg-orange-500/30 px-2 text-[10px] font-bold text-orange-300">
+            <span className="rounded-full bg-orange-500/30 px-2 text-[10px] font-bold text-orange-300 ring-1 ring-orange-500/20">
               +{card.effect.buffAttack} ⚔️
             </span>
           </div>
         )}
 
-        {/* Etiket */}
         <div className={`text-[8px] uppercase tracking-wider text-center ${
           isSpell ? 'text-purple-300' : isWeapon ? 'text-orange-300' : 'text-emerald-300'
         }`}>

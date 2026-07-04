@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import Avatar from '../components/Avatar'
+import Confetti from '../components/Confetti'
 import { useChat } from '../data/chatStore'
 import { haptic } from '../lib/haptics'
 import { sfx } from '../lib/sound'
@@ -370,6 +371,7 @@ export default function OnlineBattleshipPage() {
         </div>
       )}
 
+      <Confetti show={playerWon} />
       {(playerWon || opponentWon) && (
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-[#030f1d]/80 px-6 backdrop-blur-sm animate-pop-in">
           <div className="glass w-full max-w-xs rounded-3xl border-sky-400/25 p-6 text-center">

@@ -10,7 +10,7 @@ import { recordGame } from '../data/statsStore'
 import CardHand from '../components/cards/CardHand'
 import CardBoard from '../components/cards/CardBoard'
 import HeroSelect from '../components/cards/HeroSelect'
-import { CardAnimationOverlay, ManaCrystal, CardDrawPile } from '../components/cards/CardAnimation'
+import { CardAnimationOverlay, ManaCrystal, CardDrawPile, triggerAnimation } from '../components/cards/CardAnimation'
 
 function uid() { return Math.random().toString(36).slice(2, 8) }
 
@@ -346,6 +346,7 @@ export default function CardBattlePage({ initialHero, botLevel: forcedLevel }: B
         }
       }
       sfx.cardPlay()
+      triggerAnimation({ type: 'play', emoji: card.emoji })
     } else if (card.type === 'weapon') {
       caster.weaponAtk = card.effect?.buffAttack || 0
       caster.weaponDurability = 3
@@ -353,6 +354,7 @@ export default function CardBattlePage({ initialHero, botLevel: forcedLevel }: B
       if (card.effect?.draw) setTimeout(() => drawCards(card.effect!.draw!, who), 200)
       if (card.effect?.stealLife) caster.hp = Math.min(caster.maxHp, caster.hp + 2)
       sfx.cardPlay()
+      triggerAnimation({ type: 'play', emoji: card.emoji })
     } else if (card.type === 'spell') {
       if (card.effect?.win) { state.winner = who === 'player' ? 0 : 1; log('Büyük Papaya oynandı!'); return }
       if (card.effect?.damage) {
@@ -420,6 +422,7 @@ export default function CardBattlePage({ initialHero, botLevel: forcedLevel }: B
       }
       log(`${who === 'player' ? 'Sen' : 'Bot'}: ${card.emoji} ${card.name}`)
       sfx.spellCast()
+      triggerAnimation({ type: 'spell', emoji: card.emoji })
     }
 
     if (target.hp <= 0) state.winner = who === 'player' ? 0 : 1
@@ -791,6 +794,7 @@ export default function CardBattlePage({ initialHero, botLevel: forcedLevel }: B
     setDiscoverCards(null)
     addLog(`Keşif: ${card.emoji} ${card.name} seçildi`)
     sfx.cardPlay()
+    triggerAnimation({ type: 'spell', emoji: '🌟' })
   }, [addLog])
 
   const restartGame = useCallback(() => {

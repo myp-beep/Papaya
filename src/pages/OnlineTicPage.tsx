@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import Avatar from '../components/Avatar'
+import Confetti from '../components/Confetti'
 import { useChat } from '../data/chatStore'
+import { haptic } from '../lib/haptics'
+import { sfx } from '../lib/sound'
 import type { Peer } from '../types'
 
 type Cell = 'X' | 'O' | null
@@ -77,6 +80,8 @@ export default function OnlineTicPage() {
       next[i] = mySymbol
       setBoard(next)
       setTurn(mySymbol === 'X' ? 'O' : 'X')
+      haptic('light')
+      sfx.tap()
       sendEvent('game:move', { to: peer.id, gameId, cell: i, symbol: mySymbol })
     },
     [peer, board, over, myTurn, mySymbol, gameId, sendEvent],
@@ -87,6 +92,14 @@ export default function OnlineTicPage() {
     setTurn('X')
     if (peer) sendEvent('game:reset', { to: peer.id, gameId })
   }, [peer, gameId, sendEvent])
+
+  const won = winner?.player === mySymbol
+  const lost = winner && !won
+
+  useEffect(() => {
+    if (won) { haptic('success'); sfx.win() }
+    else if (lost) { haptic('warning'); sfx.fail() }
+  }, [won, lost])
 
   const status = useMemo(() => {
     if (!ready) return 'Rakip bekleniyor…'
@@ -107,8 +120,9 @@ export default function OnlineTicPage() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-ink-900">
-      <header className="flex items-center gap-3 border-b border-ink-700 bg-ink-800/90 px-3 py-2.5">
+    <div className="flex h-full flex-col bg-gradient-to-b from-ink-900 to-ink-950">
+      <Confetti show={won} />
+      <header className="flex items-center gap-3 border-b border-ink-700 bg-ink-800/90 px-3 py-2.5 backdrop-blur">
         <button
           onClick={() => navigate(-1)}
           className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-white/70 transition hover:bg-ink-700"
@@ -121,12 +135,22 @@ export default function OnlineTicPage() {
           <div className="truncate font-semibold text-white">⭕ XOX · {peer.name}</div>
           <div className="text-xs text-papaya-400">Canlı çok oyunculu · sen {mySymbol}</div>
         </div>
+        {ready && (
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+            myTurn ? 'bg-emerald-500/20 text-emerald-400' : 'bg-ink-600 text-white/40'
+          }`}>
+            {myTurn ? 'Sıran' : 'Bekliyor'}
+          </span>
+        )}
       </header>
 
-      <div className="mb-2 mt-4 text-center text-sm font-semibold text-white/85">{status}</div>
+      <div className={`mb-3 mt-4 text-center text-sm font-semibold ${won ? 'text-emerald-400' : lost ? 'text-red-400' : 'text-white/85'}`}>
+        {status}
+      </div>
 
       <div className="px-8">
-        <div className="grid grid-cols-3 gap-2.5">
+        <div className="glass relative grid grid-cols-3 gap-2.5 rounded-[1.75rem] p-3 shadow-card">
+          <span className="pointer-events-none absolute -inset-2 -z-10 rounded-[2rem] bg-gradient-to-br from-papaya-500/10 via-transparent to-grape-500/10 blur-xl" />
           {board.map((cell, i) => {
             const isWin = winner?.line.includes(i)
             return (
@@ -135,7 +159,9 @@ export default function OnlineTicPage() {
                 onClick={() => play(i)}
                 disabled={!!cell || over || !myTurn}
                 className={`flex aspect-square items-center justify-center rounded-2xl border text-4xl font-black transition ${
-                  isWin ? 'border-emerald-400/60 bg-emerald-500/20' : 'border-ink-600 bg-ink-800 enabled:hover:bg-ink-700'
+                  isWin
+                    ? 'win-pulse border-emerald-400/60 bg-emerald-500/20'
+                    : 'border-white/10 bg-gradient-to-br from-ink-900/80 to-ink-800/40 enabled:hover:border-papaya-400/40 enabled:hover:bg-ink-700'
                 } ${cell === 'X' ? 'text-papaya-400' : 'text-grape-400'} ${myTurn && !cell && !over ? 'enabled:active:scale-95' : ''}`}
               >
                 {cell}
@@ -147,10 +173,7 @@ export default function OnlineTicPage() {
 
       {over && (
         <div className="mt-5 flex justify-center">
-          <button
-            onClick={rematch}
-            className="btn-primary px-6 py-2.5"
-          >
+          <button onClick={rematch} className="btn-primary px-6 py-2.5">
             Rövanş
           </button>
         </div>
